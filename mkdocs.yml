@@ -1,0 +1,82 @@
+site_name: PFM Core Banking — Architecture & SRE Docs
+site_description: Documentação Executiva, Arquitetural (C4 & ADRs), Produto (PRD & BDD) e Operações (SRE & FinOps) da Plataforma PFM Core Banking Multicloud.
+site_url: https://sorobanerp.github.io/pfm-docs/
+repo_name: Sorobanerp/pfm-docs
+repo_url: https://github.com/Sorobanerp/pfm-docs
+
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Alternar para modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Alternar para modo claro
+
+plugins:
+  - search:
+      lang:
+        - pt
+        - en
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - Visão Executiva: index.md
+  - Arquitetura:
+      - ADRs V2 (Decisões Arquiteturais): architecture/adrs.md
+      - Modelo C4 & Topologia (14 Repos): architecture/c4-model.md
+      - Fluxos Críticos & Sequência: architecture/flows.md
+  - Produto & Domínio:
+      - PRD Core Banking & Regras (RN01–RN06): product/prd-core-banking.md
+      - Backlog Scrum & Especificações BDD: product/backlog-bdd.md
+  - Operações, SRE & FinOps:
+      - SLOs, Observabilidade, DR & FinOps: operations/sre-finops.md
