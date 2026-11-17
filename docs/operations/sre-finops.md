@@ -155,24 +155,63 @@ O dimensionamento de referência considera um ambiente de Produção de alta dis
 4. **Substituição de Redis Proprietário por Valkey 8**:
    - Redução de até 20% na camada de cache em memória mantendo 100% de compatibilidade de protocolo.
 
-## 5. Mapa Canônico de Portas Locais (Isolamento Host `1xxxx`)
+## 5. Mapa Canônico de Portas Locais & Estratégia 12-Factor App
 
-Para eliminar colisões com o Portainer (`8000`, `9000`, `9443`) e serviços do SO, todas as portas **de host** do ambiente local usam a faixa `1xxxx`. Dentro de containers e no Kubernetes valem as portas padrão — a configuração é 100% via variáveis de ambiente (12-Factor), sem alterar código.
+### Estratégia de Isolamento 12-Factor (Port Binding via Environment)
 
-| Componente | Host (local) | Container / Cluster | Variável de ambiente |
-|---|---|---|---|
-| `pfm-docs` (MkDocs) | `18000` | `8000` | `PORT` (Makefile) |
-| `pfm-web-nextjs` | `18300` | `3000` | `PORT`, `NEXT_PUBLIC_API_URL` |
-| `pfm-envoy-gateway` | `18080` | `8080` | — |
-| `pfm-ingestion-bff-go` (HTTP) | `18100` | `8080` | `SERVER_PORT` |
-| `pfm-forecast-engine-go` (gRPC) | `18110` | `9090` | `GRPC_PORT` |
-| `pfm-core-ledger-java` HTTP/Actuator | `18200` | `8080` | `SERVER_PORT` |
-| `pfm-core-ledger-java` gRPC | `18210` | `9090` | `GRPC_SERVER_PORT` |
-| `pfm-ai-worker-python` (health) | `18400` | `8080` | `WORKER_PORT` |
-| `postgres-core-ledger` | `15432` | `5432` | `DB_URL` |
-| `postgres-ai-rules` | `15433` | `5432` | `PFM_AI_RULES_DSN` |
-| `pfm-redis` (Valkey) | `16379` | `6379` | `REDIS_ADDR` |
-| `pfm-kafka` | `19092` | `9092` | `KAFKA_BROKERS` / `KAFKA_BOOTSTRAP_SERVERS` |
-| `pfm-kafka-ui` | `18085` | `8080` | — |
-| `pfm-localstack` | `14566` | `4566` | `AWS_ENDPOINT_URL` |
-| Android Emulator -> Envoy | `10.0.2.2:18080` | — | `BuildConfig.API_BASE_URL` |
+Em conformidade com o **Princípio VII do 12-Factor App (Port Binding)**, todos os serviços da plataforma PFM Core Banking são completamente autossuficientes e exportam seus serviços HTTP/gRPC vinculando-se a portas declaradas por variáveis de ambiente.
+
+- **Ambiente de Produção (Kubernetes / Cloud):** Os pods escutam em suas portas de rede padronizadas (`8080` para HTTP, `9090` para gRPC, `5432` para PostgreSQL, etc.). A resolução de nomes entre serviços ocorre via Kubernetes CoreDNS e Services ClusterIP.
+- **Ambiente de Desenvolvimento Local (Host):** Para evitar qualquer conflito com ferramentas de infraestrutura local previamente instaladas no sistema operacional (notadamente o **Portainer** nas portas `8000`, `9000` e `9443`, PostgreSQL local em `5432`, Redis em `6379` e Kafka em `9092`), o ecossistema PFM adota um particionamento estrito:
+  - **Aplicações e Gateways no Host:** Faixa `18xxx` (`18000` a `18400`).
+  - **Serviços de Infraestrutura Local (Docker Compose):** Faixas `14xxx` (LocalStack `14566`), `15xxx` (PostgreSQL `15432` / `15433`), `16xxx` (Redis `16379`) e `19xxx` (Kafka `19092`).
+
+### Topologia Canônica de Portas
+
+| Componente | Host (Local) | Container / K8s | Protocolo | Variável de Ambiente | Descrição / Roteamento |
+|---|:---:|:---:|:---:|---|---|
+| `pfm-docs` (MkDocs) | `18000` | `8000` | HTTP | `PORT=18000` | Servidor de documentação viva (preserva Portainer na `8000`) |
+| `pfm-web-nextjs` | `18300` | `3000` | HTTP | `PORT=18300`, `NEXT_PUBLIC_API_URL` | Frontend Web (Next.js SSR) |
+| `pfm-envoy-gateway` | `18080` | `8080` | HTTP/2, HTTP/3 | — (mapeamento Docker) | Edge Gateway -> `host.docker.internal:18100` |
+| `pfm-ingestion-bff-go` | `18100` | `8080` | HTTP | `SERVER_PORT=18100` | Ingestion BFF HTTP API |
+| `pfm-forecast-engine-go` | `18110` | `9090` | gRPC / HTTP | `GRPC_PORT=18110` | Forecast Engine gRPC & Health HTTP |
+| `pfm-core-ledger-java` HTTP | `18200` | `8080` | HTTP | `SERVER_PORT=18200` | Actuator Health, Metrics & REST |
+| `pfm-core-ledger-java` gRPC | `18210` | `9090` | gRPC | `GRPC_SERVER_PORT=18210` | Core Ledger Engine gRPC |
+| `pfm-ai-worker-python` | `18400` | `8080` | HTTP | `WORKER_PORT=18400` | Worker de Categorização & Healthcheck |
+| `postgres-core-ledger` | `15432` | `5432` | TCP/SQL | `DB_URL` | PostgreSQL Core Banking (Partidas Dobradas + RLS) |
+| `postgres-ai-rules` | `15433` | `5432` | TCP/SQL | `PFM_AI_RULES_DSN` | PostgreSQL Regras e Taxonomia IA |
+| `pfm-redis` (Valkey) | `16379` | `6379` | RESP3 | `REDIS_ADDR` | Cache L1, Locks e Idempotência (72h) |
+| `pfm-kafka` (KRaft) | `19092` | `9092` | TCP | `KAFKA_BROKERS` / `KAFKA_BOOTSTRAP_SERVERS` | Event Streaming Backbone |
+| `pfm-kafka-ui` | `18085` | `8080` | HTTP | — (mapeamento Docker) | Interface Web de Inspeção Kafka |
+| `pfm-localstack` | `14566` | `4566` | HTTP | `AWS_ENDPOINT_URL` | AWS S3, KMS & Secrets Manager emulados |
+| Android Emulator -> Envoy | `10.0.2.2:18080` | — | HTTP | `BuildConfig.API_BASE_URL` | Roteamento nativo Android Emulator -> Envoy Host |
+
+### Matriz de Endpoints de Verificação de Saúde (Health Checks)
+
+Todos os serviços expõem endpoints padronizados de sondagem liveness/readiness para validação rápida no host ou pelos probes do Kubernetes (`livenessProbe` / `readinessProbe`):
+
+```bash
+# 1. Envoy API Gateway
+curl -f -s http://localhost:18080/healthz
+# Resposta esperada: {"status":"UP","gateway":"pfm-envoy-edge","routing":"/api/v1/* -> bff_go_cluster"}
+
+# 2. Ingestion BFF (Go)
+curl -f -s http://localhost:18100/health
+# Resposta esperada: {"protocols":["HTTP/2","HTTP/3-QUIC-Ready","gRPC"],"service":"pfm-ingestion-bff-go","status":"UP"}
+
+# 3. Forecast Engine (Go)
+curl -f -s http://localhost:18110/health
+# Resposta esperada: {"port":18110,"service":"pfm-forecast-engine-go","status":"UP"}
+
+# 4. Core Ledger (Java 25 / Spring Boot 3.4)
+curl -f -s http://localhost:18200/actuator/health
+# Resposta esperada: {"status":"UP"}
+
+# 5. AI Worker (Python)
+curl -f -s http://localhost:18400/health
+# Resposta esperada: {"service":"pfm-ai-worker-python","status":"UP"}
+
+# 6. Web Portal (Next.js 15)
+curl -f -s -I http://localhost:18300 | head -n 1
+# Resposta esperada: HTTP/1.1 200 OK
+```

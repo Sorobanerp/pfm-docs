@@ -31,7 +31,7 @@ MODO DE EXECUÇÃO AUTÔNOMA: Execute todas as edições de arquivos, testes Go 
 Atue como Staff Engineer Golang no repositório `/home/dantas/workspace/pfm-platform/pfm-ingestion-bff-go`:
 
 1. Adicione em `internal/adapter/in/http/rate_limiter.go` um middleware Token Bucket / Sliding Window por `X-Tenant-ID` (ADR-008: limite configurável, retornando `HTTP 429 Too Many Requests` com header `Retry-After` quando excedido).
-2. Adicione em `internal/adapter/out/grpc/forecast_ledger_client.go` o cliente gRPC/HTTP2 para consultar `GetTenantFinancialSummary` no `pfm-core-ledger-java` (`localhost:9090`) e `SimulateContractAmortization` no `pfm-forecast-engine-go` (`localhost:9091`), protegido por Timeout (3s) e Circuit Breaker.
+2. Adicione em `internal/adapter/out/grpc/forecast_ledger_client.go` o cliente gRPC/HTTP2 para consultar `GetTenantFinancialSummary` no `pfm-core-ledger-java` (host `localhost:18210` / container `localhost:9090`) e `SimulateContractAmortization` no `pfm-forecast-engine-go` (host `localhost:18110` / container `localhost:9090`), protegido por Timeout (3s) e Circuit Breaker.
 3. Exponha em `internal/adapter/in/http/server.go` as rotas consumidas pelo frontend `pfm-web-nextjs`:
    - `GET /api/v1/dashboard` (com suporte a `ETag` / `If-None-Match` -> `304 Not Modified`)
    - `POST /api/v1/contracts/simulate`
@@ -50,7 +50,7 @@ Atue como Staff Data & AI Engineer no repositório `/home/dantas/workspace/pfm-p
 
 1. Em `src/domain/taxonomy.py`, adicione um mapeador canônico `to_core_ledger_taxonomy(code: CategoryCode) -> tuple[str, str]` que converte cada `CategoryCode` do worker para a tupla `(level1_code, level2_code)` oficial do seed Flyway V1 do `pfm-core-ledger-java` (ex.: `VAR_FOOD_RESTAURANT` -> `("ALIMENTACAO", "RESTAURANTES_GASTRONOMIA")`, `VAR_FOOD_GROCERY` -> `("ALIMENTACAO", "SUPERMERCADO_MERCEARIA")`, `VAR_MOBILITY_FUEL` -> `("TRANSPORTE", "COMBUSTIVEL_ETANOL_GASOLINA")`, `VAR_FAMILY_CARE` -> `("SAUDE", "FARMACIA_MEDICAMENTOS")`, `SYS_UNCLASSIFIED` -> `("OUTROS", "NAO_CATEGORIZADO")`).
 2. Inclua os campos `ledger_category_code` e `ledger_subcategory_code` em `CategorizedTransaction` (`src/domain/models.py`) para integração direta com `CommitCategorizedTransactionUseCase` no Core Ledger Java.
-3. Crie `migrations/V1__init_ai_rules_rls.sql` documentando o schema PostgreSQL RLS da tabela `learned_merchant_rules` no banco `pfm_ai_rules` (porta 5433).
+3. Crie `migrations/V1__init_ai_rules_rls.sql` documentando o schema PostgreSQL RLS da tabela `learned_merchant_rules` no banco `pfm_ai_rules` (porta host 15433 / container 5432).
 4. Adicione teste unitário em `tests/test_three_layer_pipeline.py` validando `to_core_ledger_taxonomy` e execute `.venv/bin/ruff check src tests` e `.venv/bin/pytest -v`.
 5. Faça `git add . && git commit -m "feat(taxonomy): add canonical Core Ledger N1/N2 taxonomy mapping and RLS SQL migration"`.
 ```

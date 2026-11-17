@@ -13,10 +13,10 @@
 
 | Bloco | Tempo | Módulo / Tela | Foco da Demonstração |
 |---|---|---|---|
-| **Bloco 1** | `00:00 – 04:00` | `http://localhost:3000/` | Visão Consolidada vs. Por Titular, Run-rate (`Semáforo: RED`) e Regra de Ouro `"Limite disponível ≠ Orçamento"` (RN02). |
-| **Bloco 2** | `04:00 – 08:00` | `http://localhost:3000/cards` | Matriz Multi-Cartões (`Itaú 5285`, `Itaú 1360`, `BB 7741`, `Marisa 0912`), Parcelamento 10x e Upload em Lote PDF em RAM (Zero-Persistence). |
-| **Bloco 3** | `08:00 – 12:00` | `http://localhost:3000/inbox` | Pipeline IA em 3 Camadas: Limpeza de Adquirentes (`JIM.COM*`, `MP *`), Extração de Cidade (`Acu / RN`) e Aprendizado Retroativo na Camada 1. |
-| **Bloco 4** | `12:00 – 16:00` | `http://localhost:3000/contracts` | Simulador Imutável de Contratos (`SAC 360m`, `Price` e `Consórcio 72m`): Reduzir Prazo vs. Reduzir Parcela e ROI Efetivo isento de IR. |
+| **Bloco 1** | `00:00 – 04:00` | `http://localhost:18300/` | Visão Consolidada vs. Por Titular, Run-rate (`Semáforo: RED`) e Regra de Ouro `"Limite disponível ≠ Orçamento"` (RN02). |
+| **Bloco 2** | `04:00 – 08:00` | `http://localhost:18300/cards` | Matriz Multi-Cartões (`Itaú 5285`, `Itaú 1360`, `BB 7741`, `Marisa 0912`), Parcelamento 10x e Upload em Lote PDF em RAM (Zero-Persistence). |
+| **Bloco 3** | `08:00 – 12:00` | `http://localhost:18300/inbox` | Pipeline IA em 3 Camadas: Limpeza de Adquirentes (`JIM.COM*`, `MP *`), Extração de Cidade (`Acu / RN`) e Aprendizado Retroativo na Camada 1. |
+| **Bloco 4** | `12:00 – 16:00` | `http://localhost:18300/contracts` | Simulador Imutável de Contratos (`SAC 360m`, `Price` e `Consórcio 72m`): Reduzir Prazo vs. Reduzir Parcela e ROI Efetivo isento de IR. |
 | **Bloco 5** | `16:00 – 20:00` | Terminal & Mobile Offline-First | Conciliação Cupom NFC-e ±3 dias + Alerta de Inflação `>10%` por EAN (`7891000100103`) e Prova ao Vivo de Isolamento Zero-Trust PostgreSQL 16 RLS. |
 
 ---
@@ -24,7 +24,7 @@
 ## Passo a Passo Detalhado (O Que Clicar e O Que Destacar)
 
 ### Bloco 1 (`00:00 – 04:00`) — Visão Consolidada & Termômetro Orçamentário (`/`)
-1. **Abra `http://localhost:3000/` no navegador.**
+1. **Abra `http://localhost:18300/` no navegador.**
 2. **Destaque o Banner Superior (RN02):**
    - Aponte para o alerta âmbar: *"Regra de Ouro (RN02): Limite disponível de cartão ≠ Orçamento"*.
    - Explique: *"A Família Silva possui **R$ 64.500,00** de limite somado nos 4 cartões, mas a renda líquida realizada do mês é **R$ 18.200,00**. Bancos e planilhas comuns mostram limite disponível como poder de compra; o PFM Core Banking confronta o gasto projetado exclusivamente contra a renda líquida regular."*

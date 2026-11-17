@@ -33,11 +33,13 @@
 
 ## 2. Matriz de Integração Validada (100% Alinhada)
 
-| Integração | Origem | Destino | Protocolo / Tópico / Porta | Status |
+| Integração | Origem | Destino | Protocolo / Tópico / Porta Canônica | Status |
 |---|---|---|---|---|
-| **North-South Edge Routing** | `pfm-web-nextjs` / `pfm-mobile-android` -> Envoy (`:8080`) | `pfm-ingestion-bff-go` (`:8081`) | HTTP/3 & HTTP/2 (`ETag`, `Brotli`, `X-Tenant-ID`, Rate Limit) | **CONFORME** |
+| **North-South Edge Routing** | `pfm-web-nextjs` (`:18300`) / Mobile -> Envoy (`:18080`) | `pfm-ingestion-bff-go` (`:18100`) | HTTP/3 & HTTP/2 (`ETag`, `Brotli`, `X-Tenant-ID`, Rate Limit) | **CONFORME** |
 | **Extração de Faturas PDF (RAM)** | `pfm-ingestion-bff-go` | `pfm-ai-worker-python` | Kafka `statement.raw.extracted` (key = `tenant_id`) | **CONFORME** |
-| **Classificação IA 3 Camadas** | `pfm-ai-worker-python` (`pfm_ai_rules:5433` RLS) | `pfm-core-ledger-java` (`pfm_core_ledger:5432` RLS) | Kafka `tx.categorized` (`ledger_category_code` / `ledger_subcategory_code`) | **CONFORME** |
-| **Conciliação NFC-e Síncrona** | `pfm-ingestion-bff-go` (`SefazNfceScraper`) | `pfm-core-ledger-java` (`:9090`) | gRPC `ProcessReceipt` (`±3 dias` + inflação `>10%` EAN) | **CONFORME** |
-| **Transactional Outbox -> Projeção** | `pfm-core-ledger-java` (`OutboxRelayScheduler`) | `pfm-forecast-engine-go` (`Valkey:6379`) | Kafka `ledger.entry.committed` (`< 25ms`, medido `1.31ms`) | **CONFORME** |
-| **Simulador SAC / Price / Consórcio** | `pfm-ingestion-bff-go` (`/api/v1/contracts/simulate`) | `pfm-forecast-engine-go` (`:9091`) | gRPC `SimulateContractAmortization` (`shopspring/decimal` Half-Even) | **CONFORME** |
+| **Classificação IA 3 Camadas** | `pfm-ai-worker-python` (`pfm_ai_rules:15433` RLS) | `pfm-core-ledger-java` (`pfm_core_ledger:15432` RLS) | Kafka `tx.categorized` (`ledger_category_code` / `ledger_subcategory_code`) | **CONFORME** |
+| **Conciliação NFC-e Síncrona** | `pfm-ingestion-bff-go` (`SefazNfceScraper`) | `pfm-core-ledger-java` (`:18210`) | gRPC `ProcessReceipt` (`±3 dias` + inflação `>10%` EAN) | **CONFORME** |
+| **Transactional Outbox -> Projeção** | `pfm-core-ledger-java` (`OutboxRelayScheduler`) | `pfm-forecast-engine-go` (`Valkey:16379`) | Kafka `ledger.entry.committed` (`< 25ms`, medido `1.31ms`) | **CONFORME** |
+| **Simulador SAC / Price / Consórcio** | `pfm-ingestion-bff-go` (`/api/v1/contracts/simulate`) | `pfm-forecast-engine-go` (`:18110`) | gRPC `SimulateContractAmortization` (`shopspring/decimal` Half-Even) | **CONFORME** |
+
+> *Nota de Conformidade 12-Factor:* Todas as portas locais no host utilizam a faixa canônica `1xxxx` (infra em `14xxx`/`15xxx`/`16xxx`/`19xxx`) para isolamento total contra Portainer (`8000`, `9000`, `9443`) e serviços legados do sistema operacional. No cluster K8s, aplicam-se as portas internas padrão (`8080`, `9090`, `5432`, `6379`, `9092`).

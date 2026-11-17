@@ -11,21 +11,23 @@
 
 Todos os containers de infraestrutura (`pfm-shared-infra/local-cloud/docker-compose.yml`), os 4 microsserviços backend (com logs estruturados em `/tmp/pfm-logs/`) e o portal `pfm-web-nextjs` subiram em ordem e responderam `HTTP 200 OK` nos health checks:
 
-| Camada | Serviço / Container | Endpoint de Saúde / Porta | Status Obtido | Log Estruturado |
+| Camada | Serviço / Container | Endpoint de Saúde / Porta Canônica Host | Status Obtido | Log Estruturado |
 |---|---|---|---|---|
-| **Infra Cloud Local** | `pfm-localstack`, `postgres-core-ledger` (`:5432`), `postgres-ai-rules` (`:5433`), `pfm-kafka` (`:9092`), `pfm-redis` (`:6379`) | Containers Docker Healthcheck | `Healthy` | Docker Engine |
-| **Edge API Gateway** | `pfm-envoy-gateway` | `http://localhost:8080/healthz` | **`HTTP 200 OK`** | Docker / Envoy |
-| **Backend Core Ledger** | `pfm-core-ledger-java` (Java 25 LTS) | `http://localhost:9090/actuator/health` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-core-ledger-java.log` |
-| **Backend Forecast Engine** | `pfm-forecast-engine-go` (Golang) | `http://localhost:9091/health` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-forecast-engine-go.log` |
-| **Backend AI Worker** | `pfm-ai-worker-python` (Python 3.12) | Consumer `statement.raw.extracted` | **`ACTIVE`** | `/tmp/pfm-logs/pfm-ai-worker-python.log` |
-| **Backend Ingestion BFF** | `pfm-ingestion-bff-go` (Golang) | `http://localhost:8081/health` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-ingestion-bff-go.log` |
-| **Frontend Executivo** | `pfm-web-nextjs` (Next.js 15 Standalone) | `http://localhost:3000` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-web-nextjs.log` |
+| **Infra Cloud Local** | `pfm-localstack` (`:14566`), `postgres-core-ledger` (`:15432`), `postgres-ai-rules` (`:15433`), `pfm-kafka` (`:19092`), `pfm-redis` (`:16379`) | Containers Docker Healthcheck | `Healthy` | Docker Engine |
+| **Edge API Gateway** | `pfm-envoy-gateway` | `http://localhost:18080/healthz` | **`HTTP 200 OK`** | Docker / Envoy |
+| **Backend Core Ledger** | `pfm-core-ledger-java` (Java 25 LTS) | `http://localhost:18200/actuator/health` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-core-ledger-java.log` |
+| **Backend Forecast Engine** | `pfm-forecast-engine-go` (Golang) | `http://localhost:18110/health` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-forecast-engine-go.log` |
+| **Backend AI Worker** | `pfm-ai-worker-python` (Python 3.12) | `http://localhost:18400/health` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-ai-worker-python.log` |
+| **Backend Ingestion BFF** | `pfm-ingestion-bff-go` (Golang) | `http://localhost:18100/health` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-ingestion-bff-go.log` |
+| **Frontend Executivo** | `pfm-web-nextjs` (Next.js 15 Standalone) | `http://localhost:18300` | **`HTTP 200 OK`** | `/tmp/pfm-logs/pfm-web-nextjs.log` |
+
+> *Nota de Conformidade 12-Factor:* Todas as portas locais no host utilizam a faixa canônica `1xxxx` (infra em `14xxx`/`15xxx`/`16xxx`/`19xxx`) para isolamento total contra Portainer (`8000`, `9000`, `9443`) e serviços legados do sistema operacional.
 
 ---
 
 ## 2. Validação E2E da Interface Web (`Playwright Headless` — `4 passed in 2.0s`)
 
-A suíte [`e2e/executive-portal.spec.ts`](file:///home/dantas/workspace/pfm-platform/pfm-web-nextjs/e2e/executive-portal.spec.ts) foi executada em navegador Chromium/Chrome real (`headless: true`) contra `http://localhost:3000` integrado ao API Gateway Envoy (`http://localhost:8080`):
+A suíte [`e2e/executive-portal.spec.ts`](file:///home/dantas/workspace/pfm-platform/pfm-web-nextjs/e2e/executive-portal.spec.ts) foi executada em navegador Chromium/Chrome real (`headless: true`) contra `http://localhost:18300` integrado ao API Gateway Envoy (`http://localhost:18080`):
 
 | # | Tela / Rota | Cenário Validado pelo Playwright | Tempo de Execução | Status |
 |---|---|---|---|---|
@@ -40,7 +42,7 @@ A suíte [`e2e/executive-portal.spec.ts`](file:///home/dantas/workspace/pfm-plat
 
 1. **Persistência Offline-First (`< 100ms`) & WorkManager (`ReceiptSyncWorkerTest.kt`):**
    - Persistência local via `ReceiptDao` (`PendingReceiptEntity`) validada em modo avião com chave determinística SHA-256 (`tenant_id|qr_code_url|payment_method`) e política de retry exponencial (`NetworkType.CONNECTED` + `BackoffPolicy.EXPONENTIAL`).
-2. **Chamada Integrada do Contrato Mobile (`POST http://localhost:8080/api/v1/receipts/nfce`):**
+2. **Chamada Integrada do Contrato Mobile (`POST http://localhost:18080/api/v1/receipts/nfce` / emulador `http://10.0.2.2:18080`):**
    - Requisição enviada com headers `X-Tenant-ID: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa` e payload JSON idêntico ao emitido pelo `ReceiptSyncWorker` Android.
    - **Headers de Resposta Recebidos:**
      - `HTTP/1.1 200 OK`

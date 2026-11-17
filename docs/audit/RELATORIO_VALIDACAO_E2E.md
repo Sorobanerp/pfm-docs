@@ -2,21 +2,23 @@
 
 **Data/Hora da Execução:** `2026-11-17T00:15:31Z` (`2026-11-16T21:15:31-03:00`)  
 **Suíte Executada:** [`pfm-shared-infra/e2e/e2e_validator.py`](file:///home/dantas/workspace/pfm-platform/pfm-shared-infra/e2e/e2e_validator.py)  
-**Gateway Edge Testado:** `http://localhost:8080` (`pfm-envoy-gateway` -> `pfm-ingestion-bff-go:8081`)  
+**Gateway Edge Testado:** `http://localhost:18080` (`pfm-envoy-gateway` -> `pfm-ingestion-bff-go:18100`)  
 **Resultado Global:** **100% APROVADO (`all_passed: true`)**
+
+> **Nota de Conformidade 12-Factor:** As portas de host foram padronizadas nas faixas canônicas `1xxxx` (gateway `18080`, BFF `18100`, Forecast `18110`, Ledger `18200`, Web `18300`, AI `18400`) e `14xxx`/`15xxx`/`16xxx`/`19xxx` para isolamento total contra Portainer (`8000/9000/9443`). No container K8s permanecem as portas internas padrão.
 
 ---
 
 ## 1. Status da Infraestrutura Integrada (`pfm-shared-infra/local-cloud`)
 
-| Container / Serviço | Porta Local | Status | Papel Validado no Teste E2E |
-|---|---|---|---|
-| `pfm-localstack` | `4566` | `Up (healthy)` | Criptografia de envelope KMS e arquivamento no bucket `pfm-statements-encrypted-local`. |
-| `postgres-core-ledger` | `5432` | `Up (healthy)` | Persistência ACID sob role `pfm_app_user` (`NOBYPASSRLS`) com RLS e 56 categorias oficiais. |
-| `postgres-ai-rules` | `5433` | `Up (healthy)` | Persistência de regras aprendidas (`learned_merchant_rules`) sob role `pfm_ai_user` com RLS. |
-| `pfm-kafka` | `9092` | `Up (healthy)` | Tópicos `statement.raw.extracted`, `tx.categorized`, `receipt.items.extracted`, `ledger.entry.committed`. |
-| `pfm-redis` (Valkey 8.0) | `6379` | `Up (healthy)` | Cache Read-Model de projeção mensal Run-rate (`< 25ms`). |
-| `pfm-envoy-gateway` | `8080` | `Up (healthy)` | Roteamento North-South `/api/v1/*` -> `pfm-ingestion-bff-go:8081` com Correlation-ID. |
+| Container / Serviço | Porta Host Canônica | Porta Interna K8s | Status | Papel Validado no Teste E2E |
+|---|:---:|:---:|---|---|
+| `pfm-localstack` | `14566` | `4566` | `Up (healthy)` | Criptografia de envelope KMS e arquivamento no bucket `pfm-statements-encrypted-local`. |
+| `postgres-core-ledger` | `15432` | `5432` | `Up (healthy)` | Persistência ACID sob role `pfm_app_user` (`NOBYPASSRLS`) com RLS e 56 categorias oficiais. |
+| `postgres-ai-rules` | `15433` | `5432` | `Up (healthy)` | Persistência de regras aprendidas (`learned_merchant_rules`) sob role `pfm_ai_user` com RLS. |
+| `pfm-kafka` | `19092` | `9092` | `Up (healthy)` | Tópicos `statement.raw.extracted`, `tx.categorized`, `receipt.items.extracted`, `ledger.entry.committed`. |
+| `pfm-redis` (Valkey 8.0) | `16379` | `6379` | `Up (healthy)` | Cache Read-Model de projeção mensal Run-rate (`< 25ms`). |
+| `pfm-envoy-gateway` | `18080` | `8080` | `Up (healthy)` | Roteamento North-South `/api/v1/*` -> `pfm-ingestion-bff-go:18100` com Correlation-ID. |
 
 ---
 
@@ -37,7 +39,7 @@
 ```json
 {
   "executed_at": "2026-11-17T00:15:31.231838+00:00",
-  "gateway_url_tested": "http://localhost:8080",
+  "gateway_url_tested": "http://localhost:18080",
   "all_passed": true,
   "results": [
     {

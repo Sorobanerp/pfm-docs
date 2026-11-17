@@ -175,3 +175,30 @@ A governança de código da plataforma **PFM Core Banking** é dividida exatamen
 | **12** | `pfm-mobile-android` | Frontend Mobile | Kotlin, Jetpack Compose, Room/SQLCipher, CameraX | Aplicativo nativo **Offline-First** com leitor de QR Code NFC-e instantâneo, fila criptografada local e sincronização resiliente via WorkManager. |
 | **13** | `pfm-infra-iac` | Infraestrutura & SRE | Terraform / OpenTofu, Helm, ArgoCD, OTel | Módulos IaC 1:1 multicloud (**AWS / Azure / GCP**), manifestos GitOps Kubernetes, configurações do OpenTelemetry Collector, Prometheus/Grafana e políticas KMS/RLS. |
 | **14** | `pfm-docs` | Governança & Docs | MkDocs Material, Mermaid.js, GitHub Actions | Este repositório de **Docs-as-Code** contendo Visão Executiva, ADRs V2, Modelo C4, Fluxos de Sequência, PRD, Backlog BDD e Manual SRE/FinOps. |
+
+---
+
+## 5. Topologia de Portas: Ambiente Local (Host) vs. Cloud (Kubernetes)
+
+Para garantir execução 100% livre de colisões com serviços pré-instalados na máquina do desenvolvedor (notadamente **Portainer** nas portas `8000`, `9000` e `9443`, além de instâncias locais de PostgreSQL `5432`, Redis `6379`, Kafka `9092` ou Envoy `8080`), a plataforma adota o princípio **12-Factor App (Port Binding via Environment Variables)**:
+
+- **No Host Local:** Todos os serviços expostos e ferramentas utilizam a faixa canônica `1xxxx` (aplicações e gateways) e `14xxx`/`15xxx`/`16xxx`/`19xxx` (infraestrutura e bancos).
+- **Nos Contêineres & Kubernetes (Cloud):** Os serviços escutam em suas portas canônicas internas padrão (`8080`, `9090`, `3000`, `5432`, `6379`, `9092`, `4566`).
+
+| Componente / Serviço | Host Local | Container / K8s Cloud | Protocolo | Responsabilidade / Roteamento | Variável de Ambiente (Configuração 12-Factor) |
+| :--- | :---: | :---: | :---: | :--- | :--- |
+| **`pfm-docs`** (MkDocs) | `18000` | `8000` | HTTP | Servidor de documentação viva (preserva Portainer na `8000`) | `PORT=18000` (`Makefile`) |
+| **`pfm-web-nextjs`** | `18300` | `3000` | HTTP | Portal Web Executivo (SSR/Next.js) | `PORT=18300`, `NEXT_PUBLIC_API_URL=http://localhost:18080` |
+| **`pfm-envoy-gateway`** | `18080` | `8080` | HTTP/2, HTTP/3 | Edge API Gateway / Reverse Proxy | Mapeamento Docker `18080:8080` (Upstream -> `host.docker.internal:18100`) |
+| **`pfm-ingestion-bff-go`** | `18100` | `8080` | HTTP | Ingestion BFF & Transações | `SERVER_PORT=18100` |
+| **`pfm-forecast-engine-go`** | `18110` | `9090` | gRPC / HTTP | Motor de Projeção & Fluxo de Caixa | `GRPC_PORT=18110` (Health HTTP & gRPC) |
+| **`pfm-core-ledger-java` (HTTP)** | `18200` | `8080` | HTTP | Actuator Health, Metrics & REST | `SERVER_PORT=18200` |
+| **`pfm-core-ledger-java` (gRPC)** | `18210` | `9090` | gRPC | Core Ledger Engine (Double-entry) | `GRPC_SERVER_PORT=18210` |
+| **`pfm-ai-worker-python`** | `18400` | `8080` | HTTP | Worker de Categorização & Healthcheck | `WORKER_PORT=18400` |
+| **`postgres-core-ledger`** | `15432` | `5432` | TCP/SQL | Banco de Dados Core Ledger (RLS + Partidas) | `DB_URL=jdbc:postgresql://localhost:15432/pfm_core_ledger` |
+| **`postgres-ai-rules`** | `15433` | `5432` | TCP/SQL | Banco de Regras e Taxonomia IA | `PFM_AI_RULES_DSN=postgresql://...:15433/pfm_ai_rules` |
+| **`pfm-redis`** (Valkey) | `16379` | `6379` | RESP3 | Cache L1, Idempotência (72h) & Lock | `REDIS_ADDR=localhost:16379` |
+| **`pfm-kafka`** (KRaft) | `19092` | `9092` | TCP | Event Streaming Backbone | `KAFKA_BROKERS=localhost:19092` / `KAFKA_BOOTSTRAP_SERVERS` |
+| **`pfm-kafka-ui`** | `18085` | `8080` | HTTP | Console Web para inspeção de tópicos Kafka | Mapeamento Docker `18085:8080` |
+| **`pfm-localstack`** | `14566` | `4566` | HTTP | Mock AWS S3, KMS & SecretsManager | `AWS_ENDPOINT_URL=http://localhost:14566` |
+| **`pfm-mobile-android`** | `18080` | — | HTTP | App Android no emulador -> Envoy Gateway | `BuildConfig.API_BASE_URL="http://10.0.2.2:18080/"` |
