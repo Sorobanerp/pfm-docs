@@ -78,6 +78,7 @@ nav:
   - Produto & Domínio:
       - PRD Core Banking & Regras (RN01–RN06): product/prd-core-banking.md
       - Backlog Scrum & Especificações BDD: product/backlog-bdd.md
+      - Backlog Estratégico Release 2.1: product/BACKLOG_RELEASE_2_1.md
   - Operações, SRE & FinOps:
       - SLOs, Observabilidade, DR & FinOps: operations/sre-finops.md
       - Performance (k6) & Capacity Planning: operations/RELATORIO_PERFORMANCE_CAPACITY_PLANNING.md
