@@ -87,6 +87,7 @@ nav:
       - Prompts de Remediação Gerados: audit/PROMPTS_REMEDIACAO_GERADOS.md
       - Validação E2E (UC-01 a UC-06): audit/RELATORIO_VALIDACAO_E2E.md
       - Validação Web (Playwright) & Mobile: audit/VALIDACAO_INTERFACES_WEB_MOBILE.md
+      - Diagnóstico & Deleção de Cascas: audit/AUDITORIA_REPOSITORIOS_DELECAO.md
   - Demo Executiva MVP:
       - Roteiro Demo ao Vivo (20 min): demo/ROTEIRO_DEMO_AO_VIVO.md
       - Apresentação Executiva (Slides): demo/APRESENTACAO_EXECUTIVA_MVP.md
