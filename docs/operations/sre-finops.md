@@ -154,3 +154,25 @@ O dimensionamento de referência considera um ambiente de Produção de alta dis
    - Ao resolver **~95% das categorizações** nas Camadas 1 (Redis/Regras) e 2 (ONNX Local em CPU) e enviar apenas **~5% de casos ambíguos** para o LLM na nuvem (Camada 3), o custo mensal de IA cai em **mais de 90%** em comparação ao uso direto de LLM para todas as transações.
 4. **Substituição de Redis Proprietário por Valkey 8**:
    - Redução de até 20% na camada de cache em memória mantendo 100% de compatibilidade de protocolo.
+
+## 5. Mapa Canônico de Portas Locais (Isolamento Host `1xxxx`)
+
+Para eliminar colisões com o Portainer (`8000`, `9000`, `9443`) e serviços do SO, todas as portas **de host** do ambiente local usam a faixa `1xxxx`. Dentro de containers e no Kubernetes valem as portas padrão — a configuração é 100% via variáveis de ambiente (12-Factor), sem alterar código.
+
+| Componente | Host (local) | Container / Cluster | Variável de ambiente |
+|---|---|---|---|
+| `pfm-docs` (MkDocs) | `18000` | `8000` | `PORT` (Makefile) |
+| `pfm-web-nextjs` | `18300` | `3000` | `PORT`, `NEXT_PUBLIC_API_URL` |
+| `pfm-envoy-gateway` | `18080` | `8080` | — |
+| `pfm-ingestion-bff-go` (HTTP) | `18100` | `8080` | `SERVER_PORT` |
+| `pfm-forecast-engine-go` (gRPC) | `18110` | `9090` | `GRPC_PORT` |
+| `pfm-core-ledger-java` HTTP/Actuator | `18200` | `8080` | `SERVER_PORT` |
+| `pfm-core-ledger-java` gRPC | `18210` | `9090` | `GRPC_SERVER_PORT` |
+| `pfm-ai-worker-python` (health) | `18400` | `8080` | `WORKER_PORT` |
+| `postgres-core-ledger` | `15432` | `5432` | `DB_URL` |
+| `postgres-ai-rules` | `15433` | `5432` | `PFM_AI_RULES_DSN` |
+| `pfm-redis` (Valkey) | `16379` | `6379` | `REDIS_ADDR` |
+| `pfm-kafka` | `19092` | `9092` | `KAFKA_BROKERS` / `KAFKA_BOOTSTRAP_SERVERS` |
+| `pfm-kafka-ui` | `18085` | `8080` | — |
+| `pfm-localstack` | `14566` | `4566` | `AWS_ENDPOINT_URL` |
+| Android Emulator -> Envoy | `10.0.2.2:18080` | — | `BuildConfig.API_BASE_URL` |

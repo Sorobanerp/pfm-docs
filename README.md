@@ -37,15 +37,15 @@ Você pode executar o portal localmente usando **Python `venv`** (automático vi
 
 ### Opção A — Usando `make serve` (Recomendado)
 
-O comando `make serve` cria automaticamente o ambiente virtual `.venv` (caso não exista), instala o `mkdocs-material` e inicia o servidor com *live-reload* na porta **8000** (ou automaticamente na porta **8001** caso a porta `8000` já esteja em uso na máquina, por exemplo pelo Portainer):
+O comando `make serve` cria automaticamente o ambiente virtual `.venv` (caso não exista), instala o `mkdocs-material` e inicia o servidor com *live-reload* na porta **18000** (faixa `1xxxx` reservada ao PFM para não colidir com o Portainer em `8000`):
 
 ```bash
 make serve
 # Para forçar uma porta específica:
-make serve PORT=8080
+make serve PORT=18001
 ```
 
-Acesse no navegador: **[http://localhost:8000/pfm-docs/](http://localhost:8000/pfm-docs/)** (ou **[http://localhost:8001/pfm-docs/](http://localhost:8001/pfm-docs/)** se a porta 8000 estiver ocupada).
+Acesse no navegador: **[http://localhost:18000/pfm-docs/](http://localhost:18000/pfm-docs/)**.
 
 ### Opção B — Usando Docker diretamente
 
@@ -54,7 +54,7 @@ Caso prefira rodar sem instalar pacotes Python locais:
 ```bash
 make serve-docker
 # Ou diretamente:
-docker run --rm -it -p 8000:8000 -v $(pwd):/docs squidfunk/mkdocs-material:latest
+docker run --rm -it -p 18000:8000 -v $(pwd):/docs squidfunk/mkdocs-material:latest
 ```
 
 ---

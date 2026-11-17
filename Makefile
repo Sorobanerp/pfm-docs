@@ -3,7 +3,7 @@
 PYTHON ?= python3
 VENV_DIR ?= .venv
 VENV_BIN := $(VENV_DIR)/bin
-PORT ?= $(shell python3 -c "import socket; s=socket.socket(); res=s.connect_ex(('127.0.0.1', 8000)); s.close(); print(8000 if res != 0 else 8001)")
+PORT ?= 18000
 DOCKER_IMAGE ?= squidfunk/mkdocs-material:latest
 export NO_MKDOCS_2_WARNING=1
 
@@ -31,7 +31,7 @@ $(VENV_DIR)/bin/mkdocs:
 
 install: $(VENV_DIR)/bin/mkdocs ## Instala as dependências do MkDocs Material em virtualenv local (.venv)
 
-serve: ## Inicia o servidor local MkDocs Material (porta 8000 ou 8001 automática se 8000 estiver em uso)
+serve: ## Inicia o servidor local MkDocs Material (porta 18000 por padrão; sobrescreva com PORT=...)
 	@echo "🚀 Iniciando MkDocs Material em http://localhost:$(PORT) ..."
 	@if [ -x "$(VENV_BIN)/mkdocs" ]; then \
 		$(VENV_BIN)/mkdocs serve --dev-addr=0.0.0.0:$(PORT); \
