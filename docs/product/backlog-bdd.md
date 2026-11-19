@@ -46,6 +46,7 @@ Uma User Story só é considerada **DONE** quando validada automaticamente no pi
 | **US-09** | IA Categorizer 3-Tier | **Como** Titular da Conta, **quero** que minhas transações sejam classificadas automaticamente na Taxonomia Oficial de 2 Níveis pelo pipeline de 3 camadas (Regras $\rightarrow$ ONNX Local $\rightarrow$ LLM), **para** não categorizar gastos manualmente. | Taxonomia 2 Níveis, ADR-001, ADR-004 | 13 | P1 (Alta) |
 | **US-10** | Motor de Conciliação | **Como** Titular da Conta, **quero** que cupons NFC-e, faturas PDF e lançamentos do extrato referentes à mesma compra sejam conciliados sem duplicar meu saldo contábil, **para** manter minha contabilidade íntegra. | RN04, ADR-005 | 13 | P0 (Crítica) |
 | **US-11** | Web Portal & Dashboards | **Como** Titular da Conta, **quero** visualizar no Portal Web o comparativo de Regime de Competência vs. Regime de Caixa, evolução do orçamento e fila de conciliação assistida, **para** tomar decisões financeiras claras. | RN01, RN02, RN04 | 8 | P2 (Média) |
+| **US-12** | FinOps Manager Lambda | **Como** Engenheiro SRE/FinOps, **quero** estacionar automaticamente o Node Group EKS (`0` nós) e o RDS PostgreSQL às 20h30 BRT e religá-los às 06h00 BRT via AWS Lambda + EventBridge Scheduler (`pfm-finops-manager-infra`), **para** reduzir custos ociosos noturnos em `us-east-2`. | FinOps MVP | 5 | P1 (Alta) |
 
 ---
 
