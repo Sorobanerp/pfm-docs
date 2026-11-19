@@ -1,4 +1,4 @@
-# Backlog Scrum (US-01 a US-11), Contratos DoR/DoD V2 & Cenários BDD
+# Backlog Scrum (US-01 a US-15), Contratos DoR/DoD V2 & Cenários BDD
 
 Este documento define os contratos de qualidade de engenharia (**Definition of Ready V2** e **Definition of Done V2**), o **Backlog do Produto (US-01 a US-11)** priorizado por épicos e as especificações executáveis em **Gherkin (BDD)**.
 
@@ -31,7 +31,7 @@ Uma User Story só é considerada **DONE** quando validada automaticamente no pi
 
 ---
 
-## 2. Backlog Scrum Completo (US-01 a US-11)
+## 2. Backlog Scrum Completo (US-01 a US-15)
 
 | ID | Épico | User Story (Formato Connextra) | Regras / ADRs | Story Points | Prioridade |
 | :-: | :--- | :--- | :---: | :---: | :---: |
@@ -46,6 +46,10 @@ Uma User Story só é considerada **DONE** quando validada automaticamente no pi
 | **US-09** | IA Categorizer 3-Tier | **Como** Titular da Conta, **quero** que minhas transações sejam classificadas automaticamente na Taxonomia Oficial de 2 Níveis pelo pipeline de 3 camadas (Regras $\rightarrow$ ONNX Local $\rightarrow$ LLM), **para** não categorizar gastos manualmente. | Taxonomia 2 Níveis, ADR-001, ADR-004 | 13 | P1 (Alta) |
 | **US-10** | Motor de Conciliação | **Como** Titular da Conta, **quero** que cupons NFC-e, faturas PDF e lançamentos do extrato referentes à mesma compra sejam conciliados sem duplicar meu saldo contábil, **para** manter minha contabilidade íntegra. | RN04, ADR-005 | 13 | P0 (Crítica) |
 | **US-11** | Web Portal & Dashboards | **Como** Titular da Conta, **quero** visualizar no Portal Web o comparativo de Regime de Competência vs. Regime de Caixa, evolução do orçamento e fila de conciliação assistida, **para** tomar decisões financeiras claras. | RN01, RN02, RN04 | 8 | P2 (Média) |
+| **US-12** | Painel SaaS Admin | **Como** Administrador da Plataforma (`PLATFORM_ADMIN`), **quero** visualizar todos os tenants (famílias/contas), gerenciar planos (`FREE`, `INDIVIDUAL_PRO`, `FAMILY_PLUS`), status de assinatura (`TRIAL`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`), quotas de ingestão/IA e métricas globais de uso sem expor dados financeiros privados (respeitando PostgreSQL RLS), **para** administrar a plataforma com governança e privacidade. | RN05, ADR-006 | 8 | P1 (Alta) |
+| **US-13** | Perfil, Família & LGPD | **Como** Titular (`OWNER`) ou Membro (`MEMBER`), **quero** gerenciar meu perfil, convidar/remover membros familiares com papéis (`OWNER`, `MEMBER`, `VIEWER`), configurar metas/tetos por categoria, gerenciar chaves/senhas de cartões cifradas via KMS, exportar meus dados (LGPD) e solicitar exclusão criptográfica (*Crypto-Shredding*), **para** ter controle total sobre minha família e meus dados. | RN05, ADR-006 | 8 | P1 (Alta) |
+| **US-14** | Design System & UX | **Como** Usuário da Plataforma, **quero** navegar por uma interface refinada no padrão Apple/Adobe Craft com paleta "Organic Financial Pulse" (`#8CBA51`, `#DEFF8B`, `#FBCEB5`, `#FF5D6C`), layout responsivo *fluid full-width* e jornadas guiadas para cada Caso de Uso (`UC-01` a `UC-08`), **para** gerenciar minhas finanças com prazer estético e clareza cognitiva. | Design System, WCAG AAA | 8 | P1 (Alta) |
+| **US-15** | FinOps Manager Lambda | **Como** Engenheiro SRE/FinOps, **quero** estacionar automaticamente as tarefas computacionais e o RDS PostgreSQL às 20h30 BRT e religá-los às 06h00 BRT via AWS Lambda + EventBridge Scheduler (`pfm-finops-manager-infra`), **para** reduzir custos ociosos noturnos em `us-east-2`. | FinOps MVP, ADR-008 | 5 | P1 (Alta) |
 
 ---
 
@@ -145,4 +149,92 @@ Funcionalidade: Isolamento Zero-Trust via RLS (RN05) e Degradação Graciosa na 
     Quando o "pfm-ledger-service" solicita a categorização ao "pfm-ai-categorizer-service"
     Então o categorizador deve responder em menos de 50ms com a categoria de fallback "OUTROS :: NAO_CATEGORIZADO" e flag "requires_review = true"
     E a transação deve ser persistida com sucesso no Ledger sem retornar erro 5xx ao usuário
+```
+
+---
+
+### Feature 05: Painel SaaS Admin e Gestão de Quotas/Planos Multitenant (US-12 / RN05 / ADR-006)
+
+```gherkin
+# language: pt
+Funcionalidade: Painel SaaS Admin com Visibilidade Global e Proteção Estrita Zero-Trust RLS (US-12)
+  Como um Administrador da Plataforma (PLATFORM_ADMIN)
+  Quero visualizar métricas agregadas de todos os tenants, gerenciar planos e status de assinatura
+  Para administrar a operação SaaS com governança comercial sem jamais violar a privacidade e o sigilo bancário dos clientes
+
+  Contexto:
+    Dado que o usuário autenticado possui o papel "PLATFORM_ADMIN"
+    E existem 150 tenants cadastrados na plataforma distribuídos entre planos "FREE", "INDIVIDUAL_PRO" e "FAMILY_PLUS"
+
+  Cenário: Visualização de métricas agregadas de faturamento e consumo sem exposição de lançamentos privados
+    Quando o administrador acessa o endpoint "/api/v1/admin/tenants/metrics"
+    Então o sistema deve retornar o total consolidado de tenants por status:
+      | Status    | Quantidade |
+      | ACTIVE    | 138        |
+      | TRIAL     | 8          |
+      | PAST_DUE  | 3          |
+      | SUSPENDED | 1          |
+    E o painel deve exibir o volume global de transações ingeridas e o consumo de tokens de IA
+    E nenhuma linha de lançamento contábil ("ledger_entries") ou fatura privada ("card_statements") de nenhum tenant deve ser retornada na resposta
+
+  Cenário: Transição de assinatura para PAST_DUE e SUSPENDED com bloqueio de ingestão e preservação de leitura
+    Dado que o tenant "01933000-0000-7000-8000-00000000000C" no plano "FAMILY_PLUS" teve falha de cobrança há 6 dias
+    Quando o job de conciliação de faturamento executa
+    Então o status da assinatura do tenant deve ser atualizado para "SUSPENDED"
+    E tentativas de upload de nova fatura PDF pelo titular devem retornar erro HTTP 402 Payment Required com a mensagem "Assinatura suspensa. Por favor, regularize seu pagamento para continuar importando faturas."
+    E a consulta ao extrato histórico de lançamentos existentes deve continuar liberada em modo leitura (Read-Only)
+```
+
+---
+
+### Feature 06: Central de Perfil, Gestão Familiar e Crypto-Shredding LGPD (US-13 / RN05 / ADR-006)
+
+```gherkin
+# language: pt
+Funcionalidade: Gestão de Membros Familiares, Funções RBAC e Exclusão Criptográfica Crypto-Shredding (US-13)
+  Como um Titular da Conta (OWNER)
+  Quero convidar membros familiares com permissões segregadas e exercer meu direito de esquecimento LGPD via Crypto-Shredding
+  Para governar o orçamento colaborativo da minha família e manter controle soberano sobre meus dados pessoais
+
+  Cenário: Convite de membro familiar com papel MEMBER e teto de gastos individual
+    Dado que o titular "OWNER" do tenant "01933000-0000-7000-8000-00000000000D" possui plano "FAMILY_PLUS"
+    Quando o titular envia um convite para o e-mail "conjuge@familia.com" com papel "MEMBER" e teto mensal de R$ 2.000,00
+    Então um token de convite com validade de 48 horas deve ser gerado
+    E quando o membro aceita o convite, ele deve visualizar apenas seu próprio consumo e lançamentos autorizados
+    E o membro "MEMBER" não deve ter permissão para alterar os dados de faturamento da assinatura ou remover outros membros
+
+  Cenário: Exclusão definitiva de conta via Crypto-Shredding (Destruição Irreversível de Chave KMS)
+    Dado que o titular da conta solicita o encerramento definitivo e exclusão dos dados da família conforme o Artigo 18 da LGPD
+    E confirma a solicitação digitando "EXCLUIR_DEFINITIVAMENTE_MINHA_CONTA" com autenticação em dois fatores (MFA)
+    Quando o comando de Crypto-Shredding é processado pelo serviço de segurança
+    Então o adaptador KMS deve revogar e destruir permanentemente a Data Encryption Key (DEK) vinculada ao "tenant_id"
+    E todos os registros nas tabelas do PostgreSQL devem ter status alterado para "CRYPTO_SHREDDED" com metadados PII zerados
+    E qualquer tentativa futura de decifrar os dados históricos nos backups resultará em falha criptográfica irrecuperável
+```
+
+---
+
+### Feature 07: Experiência Visual, Responsividade Full-Width e Paleta Organic Pulse (US-14 / Design System)
+
+```gherkin
+# language: pt
+Funcionalidade: Interface Widescreen Fluida, Design System Apple Craft e Paleta Organic Financial Pulse (US-14)
+  Como um Usuário da Plataforma PFM
+  Quero interagir com um dashboard financeiro que responda fluidamente em qualquer resolução e utilize cores funcionais
+  Para tomar decisões financeiras sem cansaço visual e com feedback instantâneo sobre minha saúde financeira
+
+  Cenário: Aplicação funcional da paleta "Organic Financial Pulse" e alinhamento numérico bancário
+    Dado que o usuário acessa o dashboard executivo no portal Web
+    Quando o saldo da conta e as metas do mês estão em conformidade com o planejado (consumo < 80%)
+    Então o componente de pulso financeiro deve exibir a cor primária "#8CBA51" (Organic Olive) com acentos luminosos em "#DEFF8B" (Vibrant Lime)
+    E quando uma categoria atinge 85% do teto, a badge de status deve transicionar suavemente para "#FBCEB5" (Warm Peach)
+    E quando uma categoria atinge 102% do teto, o indicador deve alertar em "#FF5D6C" (Coral Red)
+    E todas as tabelas contábeis devem renderizar valores com a família tipográfica "SF Mono" / "JetBrains Mono" alinhados estritamente à direita
+
+  Cenário: Layout responsivo fluid full-width sem rolagem horizontal em telas ultrawide
+    Dado que o usuário acessa a plataforma em um monitor Ultrawide (2560x1080 ou 3440x1440)
+    Quando a tela é renderizada
+    Então os painéis de "Regime de Competência", "Regime de Caixa" e "Fila de Conciliação" devem ocupar a largura total útil da viewport
+    E nenhuma barra de rolagem horizontal indesejada deve ser gerada no navegador
+    E a barra de navegação lateral deve manter estado colapsável com transições suaves a 60 FPS
 ```

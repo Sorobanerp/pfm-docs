@@ -123,3 +123,85 @@ Toda movimentação financeira na plataforma PFM Core Banking é classificada ob
 | **`RECEITAS`** | Receitas & Entradas | Entrada de Caixa / Competência | `SALARIO_PRO_LABORE`, `BONUS_PLR_13_SALARIO`, `RENDIMENTOS_DIVIDENDOS`, `FREELANCE_PRESTACAO_SERVICOS`, `REEMBOLSO_CORPORATIVO`, `ESTORNO_CREDITO` |
 | **`PATRIMONIO`** | Investimentos & Movimentações Neutras | Neutro (Patrimonial / Caixa) | `APORTE_RENDA_FIXA`, `APORTE_RENDA_VARIAVEL`, `RESERVA_EMERGENCIA`, `PAGAMENTO_FATURA_CARTAO`, `TRANSFERENCIA_MESMA_TITULARIDADE` |
 | **`OUTROS`** | Outros & Pendências de Classificação | Transitório / Diversos | `DOACOES_PRESENTES`, `DESPESAS_EVENTUAIS`, `NAO_CATEGORIZADO` |
+
+---
+
+## 3. Requisitos de Plataforma, Gestão de Acesso & Governança de Tenants
+
+### 3.1. Gestão de Tenants, Planos & Assinaturas SaaS (Painel SaaS Admin — `US-12`)
+
+A plataforma opera sob o modelo de **Software as a Service (SaaS) Multi-Tenant**, onde cada família ou conta individual constitui um `tenant` lógico isolado via **PostgreSQL Row-Level Security (RLS)** e chaves KMS exclusivas:
+
+1. **Matriz de Planos & Quotas Operacionais**:
+   - **`FREE`**: 1 membro familiar, 1 cartão de crédito, até 3 uploads de faturas PDF por mês, categorização determinística (L1) e sem projeção preditiva.
+   - **`INDIVIDUAL_PRO`**: 1 titular, cartões e contas ilimitados, categorização IA completa (L1/L2/L3), conciliação automática com cupons NFC-e e projeção de fluxo de caixa em 90 dias.
+   - **`FAMILY_PLUS`**: Até 5 membros familiares, rateios entre membros, cartões/contas ilimitados, tetos individuais de gastos, cofre de senhas de cartões cifrado via KMS e exportação fiscal completa.
+2. **Ciclo de Vida da Assinatura**:
+   - `TRIAL`: Período de experimentação de 14 dias com recursos do plano `FAMILY_PLUS`.
+   - `ACTIVE`: Assinatura adimplente com renovação automática via PIX ou Cartão.
+   - `PAST_DUE`: Tolerância de 5 dias corridos após tentativa frustrada de cobrança, exibindo alerta suave no portal sem bloquear operações essenciais.
+   - `SUSPENDED`: Acesso em modo somente leitura (*read-only*), permitindo exportação dos dados contábeis pelo titular, mas bloqueando novas ingestões e processamentos de IA.
+3. **Isolamento Zero-Trust no Painel SaaS Admin**:
+   - Usuários com o perfil `PLATFORM_ADMIN` visualizam métricas agregadas do sistema (quantidade total de tenants ativos, volume de transações por minuto, taxa de erro de chamadas, faturamento e quotas de IA).
+   - **Garantia Arquitetural**: Sob nenhuma hipótese o `PLATFORM_ADMIN` tem permissão de consultar tabelas de lançamentos contábeis (`ledger_entries`), faturas (`card_statements`) ou orçamentos (`budget_plans`) pertencentes aos tenants, assegurando sigilo financeiro irrestrito garantido por RLS e criptografia KMS.
+
+---
+
+### 3.2. Central de Perfil, Família & Controles do Usuário (`US-13`)
+
+1. **Hierarquia e Funções de Acesso Familiar**:
+   - **`OWNER` (Titular Financeiro)**: Responsável legal e administrador da assinatura do tenant. Pode convidar/remover membros, configurar limites globais e por categoria, solicitar exportação completa e gerenciar chaves.
+   - **`MEMBER` (Membro Familiar Ativo)**: Pode registrar transações, escanear cupons NFC-e, fazer upload de suas próprias faturas e visualizar seu próprio consumo em relação ao teto mensal atribuído.
+   - **`VIEWER` (Membro Observador)**: Acesso exclusivo de visualização para acompanhamento educacional ou consultoria contábil familiar, sem permissão de mutação de saldo ou alteração de configurações.
+2. **Cofre Criptografado de Cartões e Contas**:
+   - Gestão de metadados de cartões de crédito e contas com dados sensíveis (números de cartão, tokens bancários) cifrados via **Envelope Encryption (KMS)** com a *Data Encryption Key (DEK)* exclusiva daquele `tenant_id`.
+3. **Direitos do Titular sob a LGPD & Exclusão Criptográfica (*Crypto-Shredding*)**:
+   - **Exportação de Dados**: Geração sob demanda de pacote completo dos lançamentos contábeis em formato aberto (`JSON` e `CSV` estruturados) assinado digitalmente.
+   - **Exclusão Criptográfica (*Crypto-Shredding*)**: Em caso de solicitação de encerramento definitivo de conta pelo titular, a plataforma destrói a DEK do tenant no KMS e marca os registros como expurgados. Mesmo que backups em fita ou snapshots históricos existam, os dados permanecem matematicamente indecifráveis para sempre.
+
+---
+
+## 4. Especificação dos Casos de Uso Oficiais da Plataforma (`UC-01` a `UC-08`)
+
+| Caso de Uso | Título do Caso de Uso | Ator Principal | Repositórios Centrais | Resumo Executivo & Invariantes de Negócio |
+| :---: | :--- | :--- | :--- | :--- |
+| **`UC-01`** | Ingestão PDF em RAM + Checksum + Idempotência | Titular (`OWNER`) | `pfm-ingestion-bff-go`, `pfm-core-ledger-java` | Parsing de fatura de cartão 100% em memória volátil (Zero-Disk), validação de `diff = 0.0000` entre soma dos lançamentos e total declarado, e bloqueio de duplicatas via hash SHA-256. |
+| **`UC-02`** | Desdobramento de Parcelas e Resíduo Decimal Bancário | Titular (`OWNER`), Membro (`MEMBER`) | `pfm-core-ledger-java` | Compra parcelada em $N\times$ com alocação do resíduo de centavos na 1ª parcela (`RN06`), sem uso de ponto flutuante IEEE 754, garantindo soma exata do valor original. |
+| **`UC-03`** | Apuração de Regime de Caixa vs. Regime de Competência | Titular (`OWNER`) | `pfm-core-ledger-java` | Segregação estrita entre data da compra (Competência - afeta orçamento do mês) e data de pagamento da fatura (Caixa - afeta saldo em conta) conforme `RN01`. |
+| **`UC-04`** | Categorização Inteligente em 3 Camadas (L1/L2/L3) | Sistema / Motor IA | `pfm-ai-worker-python`, `pfm-core-ledger-java` | Classificação na Taxonomia Oficial de 2 Níveis via funil determinístico (L1 Regex/Cache), modelo local ONNX $<10\text{ms}$ (L2) e fallback em Cloud LLM anonimizado (L3). |
+| **`UC-05`** | Projeção Preditiva de Fluxo de Caixa (Forecast) | Titular (`OWNER`) | `pfm-forecast-engine-go` | Simulação de liquidez futura para os próximos 30, 60 e 90 dias com base em gastos recorrentes, parcelas contratadas e sazonalidade histórica. |
+| **`UC-06`** | Notificação Proativa de Limiar de Orçamento e Anomalias | Sistema / Alertas | `pfm-forecast-engine-go`, `pfm-web-nextjs` | Disparo automático de alertas quando o consumo de uma categoria atinge 80% e 100% do teto, ou quando uma despesa foge do padrão histórico da família. |
+| **`UC-07`** | Painel SaaS Admin (Gestão de Tenants, Planos e Quotas) | Administrador (`PLATFORM_ADMIN`) | `pfm-core-ledger-java`, `pfm-web-nextjs` | Monitoramento global de tenants, status de assinatura (`TRIAL`, `ACTIVE`, `SUSPENDED`), consumo de quotas de IA e storage sem expor dados financeiros privados dos clientes. |
+| **`UC-08`** | Central de Perfil, Gestão Familiar e Crypto-Shredding | Titular (`OWNER`) | `pfm-core-ledger-java`, `pfm-ingestion-bff-go` | Convidar membros familiares com papéis (`MEMBER`, `VIEWER`), definir tetos de gastos por membro, exportar histórico contábil (LGPD) e executar expurgo criptográfico irrecuperável. |
+
+---
+
+## 5. Arquitetura de Experiência & Design System ("Organic Financial Pulse" — `US-14`)
+
+A experiência visual e de interação da plataforma PFM Core Banking é concebida sob o conceito **"Organic Financial Pulse"**, combinando precisão contábil bancária com o refinamento artesanal de interfaces dos ecossistemas Apple e Adobe Craft:
+
+### 5.1. Paleta de Cores Oficial ("Organic Financial Pulse")
+
+```mermaid
+flowchart LR
+    P["Primary Green<br/>#8CBA51<br/>Equilíbrio & Solidez"] --- S["Vibrant Lime<br/>#DEFF8B<br/>Pulso & Destaque Ativo"]
+    S --- A["Warm Peach<br/>#FBCEB5<br/>Transição & Atenção Suave"]
+    A --- D["Coral Red<br/>#FF5D6C<br/>Alerta & Risco de Estouro"]
+```
+
+- **`#8CBA51` (Organic Olive/Green — Primária)**: Cor estrutural para barras de navegação, status de saúde financeira positiva, saldos consolidados e indicadores de metas atingidas.
+- **`#DEFF8B` (Vibrant Lime/Pulse — Secundária / Accent Ativo)**: Ponto de luz e vibração para micro-interações, botões de ação primária (CTA), badges de novidade e *pulso* de sincronização em tempo real.
+- **`#FBCEB5` (Warm Peach — Atenção Suave / Transição)**: Indicação de aviso preventivo (consumo entre 80% e 99% do orçamento), vencimento próximo de fatura (`D-3`) e itens pendentes de conciliação.
+- **`#FF5D6C` (Coral Red — Alerta Crítico / Débito)**: Indicação clara de limite estourado, saldo devedor atrasado, parcelas com juros rotativos e erros de validação financeira.
+
+### 5.2. Princípios de Layout & Tipografia (Apple/Adobe Craft)
+
+1. **Layout Responsivo *Fluid Full-Width***:
+   - Em desktops widescreen (telas 1080p, 1440p e 4K), o dashboard aproveita a amplitude horizontal de forma balanceada sem espaços mortos excessivos nem barras de rolagem horizontais.
+   - Em smartphones (mobile web e PWA), os componentes se reorganizam fluidamente em cards verticais com gestos de toque (*swipe to categorize*, *pull to sync*).
+2. **Tipografia Refinada & Legibilidade Numérica**:
+   - Fonte primária: Família tipográfica *San Francisco (SF Pro)* no iOS/macOS e *Inter* nos demais sistemas operacionais, com variantes mono-espaçadas (`SF Mono` / `JetBrains Mono`) para todos os valores monetários `NUMERIC(19,4)`.
+   - Alinhamento decimal obrigatório à direita em tabelas financeiras para leitura instantânea de ordens de grandeza.
+3. **Mapeamento das Jornadas Guiadas (`UC-01` a `UC-08`)**:
+   - Cada caso de uso é estruturado como uma **jornada conversacional e visual guiada**: por exemplo, no `UC-01`, o usuário arrasta o PDF da fatura, visualiza a animação de conferência em tempo real dos centavos contra o total declarado e recebe o selo de conciliação verde instantâneo.
+
