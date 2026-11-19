@@ -202,3 +202,46 @@ Para garantir execução 100% livre de colisões com serviços pré-instalados n
 | **`pfm-kafka-ui`** | `18085` | `8080` | HTTP | Console Web para inspeção de tópicos Kafka | Mapeamento Docker `18085:8080` |
 | **`pfm-localstack`** | `14566` | `4566` | HTTP | Mock AWS S3, KMS & SecretsManager | `AWS_ENDPOINT_URL=http://localhost:14566` |
 | **`pfm-mobile-android`** | `18080` | — | HTTP | App Android no emulador -> Envoy Gateway | `BuildConfig.API_BASE_URL="http://10.0.2.2:18080/"` |
+
+---
+
+## 6. Topologias de Implantação Cloud: Piloto 3 Meses vs. Enterprise Scale (ADR-007 / ADR-008)
+
+A plataforma possui uma arquitetura desacoplada de container (100% OCI Distroless Arm64) que suporta duas topologias de implantação em nuvem sem alteração de código-fonte:
+
+```mermaid
+flowchart LR
+    subgraph Pilot["Topologia A: Piloto 3 Meses (~US$ 11,50 a 24,00/mês)"]
+        direction TB
+        ALB_P["Single ALB / API GW<br/>Path-Routing"] --> ECS_P["AWS ECS Fargate Spot<br/>(Arm64 Graviton)<br/>0.25 vCPU / 0.5 GB"]
+        ECS_P --> RDS_P[("Amazon RDS PostgreSQL<br/>db.t4g.micro (Single-AZ)<br/>Parada Noturna 20h30-06h00")]
+        ECS_P --> UP_K["Upstash Kafka Serverless<br/>(Free Tier / Pay-per-msg)"]
+        ECS_P --> UP_R["Upstash Redis Serverless<br/>(Free Tier / Pay-per-cmd)"]
+        LAMBDA_P["⚡ pfm-finops-manager Lambda<br/>EventBridge 20h30/06h00 BRT"] -.->|Stop/Start| RDS_P
+    end
+
+    subgraph Enterprise["Topologia B: Enterprise Scale (>100 Tenants, ~US$ 140 a 350+/mês)"]
+        direction TB
+        ALB_E["Multi-ALB + AWS WAF<br/>AWS Load Balancer Controller"] --> EKS_E["Amazon EKS Cluster<br/>(Graviton t4g.medium Multi-AZ)<br/>Autoscale KEDA + Karpenter"]
+        EKS_E --> AURORA_E[("Amazon Aurora PostgreSQL<br/>Multi-AZ + Read Replicas<br/>KMS DEK por Tenant")]
+        EKS_E --> MSK_E["Amazon MSK / Strimzi Kafka<br/>Dedicated 3-Broker Cluster"]
+        EKS_E --> VALKEY_E["Amazon ElastiCache Valkey<br/>Multi-AZ Cluster com Failover"]
+    end
+```
+
+### Matriz Comparativa de Infraestrutura e Custos Mensais
+
+| Dimensão Arquitetural | Topologia A — Piloto Enxuto 3 Meses (ADR-008) | Topologia B — Produção Enterprise (ADR-007) |
+| :--- | :--- | :--- |
+| **Público-Alvo / Escopo** | Piloto Familiar (5 a 20 usuários / 1 a 3 tenants) | Operação Comercial Multi-Tenant B2C (> 100 tenants) |
+| **Orquestrador de Containers** | **AWS ECS Fargate Spot (Arm64)** | **Amazon EKS (Kubernetes 1.30+)** |
+| **Custo do Control Plane** | **US$ 0,00 / mês** (Gerenciado AWS ECS) | **US$ 73,00 / mês** (Taxa fixa EKS $0,10/h) |
+| **Nós / Computação** | Fargate Spot sob demanda (~US$ 3,50 a US$ 8,00/mês) | Node Group Graviton Spot/On-Demand (~US$ 35,00 a US$ 80,00/mês) |
+| **Backbone Mensageria** | **Upstash Kafka Serverless** (~US$ 0,00 a US$ 2,00/mês) | **Amazon MSK ou Strimzi in-cluster** (~US$ 30,00 a US$ 90,00/mês) |
+| **Cache & Idempotência** | **Upstash Redis Serverless** (~US$ 0,00 a US$ 1,50/mês) | **Amazon ElastiCache Valkey Multi-AZ** (~US$ 15,00 a US$ 35,00/mês) |
+| **Banco Relacional (RLS)** | **RDS PostgreSQL `db.t4g.micro`** com Parada Noturna (~US$ 7,50 a US$ 12,00/mês) | **Amazon Aurora PostgreSQL Multi-AZ** (~US$ 45,00 a US$ 120,00/mês) |
+| **Load Balancer & Borda** | Single ALB compartilhado ou HTTP API (~US$ 1,50 a US$ 3,50/mês) | Ingress NGINX + ALB Multi-AZ + AWS WAF (~US$ 25,00 a US$ 50,00/mês) |
+| **Governança de Custos** | Lambda `pfm-finops-manager` (Park às 20h30 / Unpark às 06h00 BRT) | Karpenter + KEDA + Savings Plans 1-Year |
+| **Custo Total Estimado** | **~US$ 11,50 a US$ 24,00 / mês** | **~US$ 140,00 a US$ 350,00+ / mês** |
+| **Impacto no Código da Aplicação** | **Zero**. Mesmas imagens OCI Distroless `linux/arm64`. | **Zero**. Mesmas imagens OCI Distroless `linux/arm64`. |
+

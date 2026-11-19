@@ -129,3 +129,40 @@ Este documento consolida as **Architecture Decision Records (ADRs V2)** que gove
 - **Consequências**:
   - **Positivas**: Portabilidade comprovada entre AWS, Azure e GCP; aproveitamento de instâncias ARM64 e descontos de comprometimento (Savings Plans / Reserved Instances / CUDs).
   - **Trade-offs**: Proibição do uso direto de bancos proprietários sem protocolo aberto (ex.: DynamoDB ou CosmosDB Table API) no núcleo transacional.
+
+---
+
+## ADR-008: ECS Fargate Spot (Arm64) + Upstash Kafka/Redis Serverless para Piloto de 3 Meses
+
+- **Status**: Aprovado (Piloto V2.1)
+- **Contexto**: A arquitetura enterprise da plataforma foi concebida sobre Kubernetes certificado (Amazon EKS) com nós Graviton Arm64 (`t4g.medium`). No entanto, o custo fixo de sustentação do plano de controle do EKS (US$ 73,00/mês a US$ 0,10/h) somado a nós EC2 Spot, Application Load Balancers dedicados, EBS e componentes auxiliares resulta em um piso orçamentário de **~US$ 114 a US$ 140 / mês**. Para o Piloto de 3 Meses com público familiar inicial (5 a 20 usuários), esse valor representa um overhead desnecessário de capacidade ociosa. Além disso, a manutenção de clusters Apache Kafka dedicados (MSK/Strimzi) e clusters ElastiCache Valkey/Redis impõe custos mínimos mesmo durante a madrugada sem transações ativas.
+- **Decisão**:
+  1. **Substituição Temporária do EKS por AWS ECS Fargate Spot (Arm64)**:
+     - Adotar o **Amazon Elastic Container Service (ECS)** com o provedor de capacidade **Fargate Spot (`linux/arm64`)** para todos os microsserviços (`pfm-ingestion-bff-go`, `pfm-core-ledger-java`, `pfm-forecast-engine-go`, `pfm-ai-worker-python` e `pfm-web-nextjs`).
+     - O plano de controle do ECS é gratuito (**US$ 0,00/mês**), eliminando integralmente os US$ 73/mês do EKS.
+     - Tarefas dimensionadas com perfis enxutos (0.25 vCPU e 0.5 GB de RAM para Go/Python/Next.js; 0.5 vCPU e 1.0 GB de RAM para Java 25), usufruindo do desconto de ~70% do Fargate Spot.
+     - Estimativa de computação ECS Fargate Spot: **US$ 3,50 a US$ 8,00 / mês**.
+  2. **Backbone de Mensageria Serverless com Upstash Kafka**:
+     - Utilizar instâncias **Upstash Serverless Kafka** com criptografia TLS e SASL/SCRAM.
+     - O plano Free Tier contempla até 10.000 mensagens/dia sem custo fixo de instâncias; consumo excedente faturado sob demanda (US$ 0,60 por 100.000 mensagens).
+     - Custo mensal estimado para o tráfego do piloto: **US$ 0,00 a US$ 2,00 / mês**.
+  3. **Cache L1 & Lock de Idempotência com Upstash Redis/Valkey**:
+     - Utilizar **Upstash Serverless Redis** com suporte total ao protocolo RESP3.
+     - Free Tier de até 10.000 comandos/dia com latência submilisegundo e persistência automática.
+     - Custo mensal estimado para o piloto: **US$ 0,00 a US$ 1,50 / mês**.
+  4. **Persistência Relacional: Amazon RDS PostgreSQL (`db.t4g.micro`) com Parada Noturna**:
+     - PostgreSQL 16 Single-AZ com 20 GB gp3 em `us-east-2`.
+     - Integração com a Lambda `pfm-finops-manager` que suspende o banco automaticamente entre 20h30 e 06h00 BRT (economizando ~40% do custo de horas de computação).
+     - Custo mensal estimado: **US$ 7,50 a US$ 12,00 / mês**.
+  5. **Borda & Roteamento Unificado**:
+     - Uso de um único **Application Load Balancer (ALB)** enxuto compartilhado com regras de path-routing (`/api/v1/*` para o BFF, `/` para o Next.js) ou integração direta com API Gateway HTTP API.
+     - Custo mensal estimado: **US$ 1,50 a US$ 3,50 / mês**.
+  6. **Custo Total Consolidado do Piloto de 3 Meses**:
+     - **US$ 11,50 a US$ 24,00 / mês** (redução orçamentária superior a **80%** em relação ao piso do EKS).
+  7. **Preservação de Padrões e Portabilidade para Kubernetes**:
+     - 100% das imagens de container continuam construídas sobre bases **Google Container Tools Distroless** (`nonroot`), multi-arquitetura (`linux/arm64` nativo para Graviton).
+     - Todos os Helm Charts (`helm/`) e módulos OpenTofu para EKS permanecem versionados nos repositórios `*-infra`, permitindo chavear a infraestrutura de volta para EKS via pipeline sem tocar em nenhuma linha de código da aplicação quando a base de clientes ultrapassar o volume de piloto.
+- **Consequências**:
+  - **Positivas**: Custo operacional compatível com bootstrapping e validação de produto; eliminação de ociosidade noturna; retenção integral dos padrões de segurança (Distroless, Non-Root, RLS, KMS).
+  - **Trade-offs**: Possibilidade de *cold start* pontual em tarefas Fargate Spot reiniciadas; necessidade de acesso de saída seguro para o Upstash Serverless; desligamento do RDS durante a janela noturna de economia.
+

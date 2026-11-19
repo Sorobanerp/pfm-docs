@@ -215,3 +215,54 @@ curl -f -s http://localhost:18400/health
 curl -f -s -I http://localhost:18300 | head -n 1
 # Resposta esperada: HTTP/1.1 200 OK
 ```
+
+---
+
+## 6. Matriz Oficial de Ciclo de Vida & Política de Operação FinOps
+
+Para assegurar controle financeiro rigoroso sem perda de agilidade de engenharia, a plataforma adota a **Matriz Oficial de Ciclo de Vida & Política de Operação**, implementada nos repositórios de infraestrutura e orquestrada pelo **Gitflow CI/CD** e pela **Lambda `pfm-finops-manager`**.
+
+### 6.1. Matriz de Ambientes & Políticas de Execução
+
+| Ambiente | Propósito | Estratégia de Execução | Política de Ciclo de Vida / FinOps | Custo Alvo (USD) |
+| :--- | :--- | :--- | :--- | :--- |
+| **`pilot-prod`** | Operação real do Piloto de 3 Meses (5 a 20 usuários familiares). | **24x7 Enxuto com Parada Noturna Programada**: ECS Fargate Spot Arm64 + Upstash Serverless + RDS PostgreSQL `db.t4g.micro`. | A Lambda `pfm-finops-manager` executa parada automática (`stop`) às **20h30 BRT** (escalando tarefas para 0 e suspendendo o RDS) e religamento (`start`) às **06h00 BRT**, economizando ~40% de computação ociosa. | **US$ 11,50 a US$ 24,00 / mês** |
+| **`sandbox` / `ephemeral`** | Testes de integração E2E, homologação de PRs e validações de carga. | **Sob Demanda (On-Demand)** disparado manualmente via `workflow_dispatch` com parâmetro `action=apply`. | Destruição automática obrigatória (`action=destroy`) após conclusão da suíte de testes ou time-to-live (TTL) máximo de 4 horas via timer programado no GitHub Actions. | **US$ 0,00 fixo** (faturado apenas minutos de teste) |
+| **`enterprise-prod`** (Pós-Piloto) | Expansão comercial multi-tenant (> 100 famílias). | **Alta Disponibilidade Multi-AZ**: Amazon EKS Graviton + Amazon Aurora PostgreSQL + MSK/Strimzi + Valkey Multi-AZ. | Autoscaling reativo via **KEDA** (métricas de fila Kafka) e **Karpenter** (nós SPOT com consolidação automática de capacidade ociosa), coberto por Savings Plans de 1 ano. | **US$ 140 a US$ 350+ / mês** |
+
+### 6.2. Fluxo de Promoção Gitflow & Critérios de Qualidade (Gates)
+
+O ciclo de entrega segue o padrão Gitflow estrito automatizado com verificação estática, segurança e proteção de branches:
+
+```mermaid
+flowchart LR
+    DEV["feature/* ou fix/*"] -->|PR + Lint + Trivy + Tests| DEVELOP["develop (Staging)"]
+    DEVELOP -->|PR + GMUD Release| RELEASE["release/vX.Y.Z"]
+    RELEASE -->|Merge + Tag| MAIN["main (Production)"]
+    MAIN -->|OIDC + S3 Backup + Apply| PROD["AWS us-east-2"]
+    PROD -.->|Falha no Apply| ROLLBACK["Rollback Automático<br/>(terraform.tfstate.last-good)"]
+```
+
+1. **Gate 1 — Feature/Fix (`develop`)**:
+   - Validações locais e no runner: `pytest` / `go test` / `mvn test`, `tofu fmt -check`, `tofu validate` e escaneamento de vulnerabilidades IaC com **Trivy** (`--severity CRITICAL,HIGH --exit-code 1`).
+2. **Gate 2 — Release Candidate (`release/vX.Y.Z`)**:
+   - Abertura de PR de GMUD formal para a branch `main`.
+   - Execução de `tofu plan` contra o ambiente real com postagem de plano detalhado no PR.
+3. **Gate 3 — Aplicação em Produção (`main`)**:
+   - Autenticação sem credenciais estáticas via **AWS GitHub Actions OIDC Role** (`PFM-GitHubActions-OIDC-Role`).
+   - **Pre-Apply Backup**: Cópia do estado anterior no S3 para `backups/terraform.tfstate.last-good`.
+   - **Timeout Controlado**: Aplicação com timeout de 20 minutos (`timeout-minutes: 20`).
+   - **Rollback Automático**: Em caso de falha durante o `tofu apply`, restaura imediatamente o estado do snapshot `last-good`, garantindo integridade do backend DynamoDB/S3.
+
+### 6.3. Governança Ativa com `pfm-finops-manager` & Circuit-Breaker de Orçamento
+
+A Lambda `pfm-finops-manager` (`arn:aws:lambda:us-east-2:366476833548:function:pfm-finops-manager`), construída em Python 3.12 Arm64, atua como sentinela de custos e garantidora do SLA financeiro:
+
+1. **Ciclo Noturno Idempotente**:
+   - EventBridge Schedule `pfm-finops-park-nightly-2030`: cron às `20:30` BRT (`America/Sao_Paulo`) aciona `{"action": "stop"}`.
+   - EventBridge Schedule `pfm-finops-unpark-morning-0600`: cron às `06:00` BRT (`America/Sao_Paulo`) aciona `{"action": "start"}`.
+   - Idempotência total: se o banco já estiver em transição ou parado, a execução registra `skipped_status_stopping` / `already_stopped` sem lançar erros 5xx.
+2. **Circuit-Breaker de Orçamento (AWS Budgets Integration)**:
+   - **Alerta Preventivo (80%)**: Se a projeção de gastos mensais em `us-east-2` ultrapassar **US$ 20,00 / mês**, a Lambda emite notificação de alerta preventivo via SNS/Slack.
+   - **Corte de Emergência (100% / Circuit-Breaker)**: Caso o consumo atinja **US$ 30,00 / mês**, a Lambda ativa o modo de contenção estrita, reduzindo instâncias e tarefas computacionais para escala zero até aprovação explícita do administrador FinOps.
+
