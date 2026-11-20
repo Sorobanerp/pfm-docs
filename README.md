@@ -1,82 +1,65 @@
-# `pfm-docs` — Portal de Arquitetura, Produto & SRE (PFM Core Banking)
+# PFM Docs — Portal de Documentação Viva (V3.0)
 
-[![Deploy MkDocs Material to GitHub Pages](https://github.com/Sorobanerp/pfm-docs/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/Sorobanerp/pfm-docs/actions/workflows/deploy-pages.yml)
-
-Repositório oficial de **Docs-as-Code** da plataforma **PFM Core Banking** (Repositório #14 da topologia Multi-Repo), construído com **[MkDocs Material](https://squidfunk.github.io/mkdocs-material/)**, suporte nativo a diagramas **Mermaid.js**, alternância de tema claro/escuro e busca indexada em português (`pt-BR`).
+[![Gitflow](https://img.shields.io/badge/Gitflow-develop%20%7C%20main-indigo)](CONTRIBUTING.md)
+[![SemVer](https://img.shields.io/badge/SemVer-2.0.0-blue)](CHANGELOG.md)
+[![Docs](https://img.shields.io/badge/PFM%20Docs-V3.0-8CBA51)](https://sorobanerp.github.io/pfm-docs/)
 
 ---
 
-## 1. Estrutura da Documentação
+## 1. Visão Geral & Papel na Arquitetura
 
-```text
-pfm-docs/
-├── .github/
-│   └── workflows/
-│       └── deploy-pages.yml          # CI/CD automático para o GitHub Pages (branch main)
-├── docs/
-│   ├── index.md                      # Visão Executiva (Stacks, Hexagonal, Multi-Repo, Multicloud)
-│   ├── architecture/
-│   │   ├── adrs.md                   # ADRs V2 (ADR-001 a ADR-007)
-│   │   ├── c4-model.md               # Diagramas Mermaid C4 (Níveis 1, 2 e 3) + 14 Repositórios
-│   │   └── flows.md                  # Sequência: PDF em RAM, Pipeline IA 3 Camadas e NFC-e Offline
-│   ├── product/
-│   │   ├── prd-core-banking.md       # Regras de Negócio RN01 a RN06 + Taxonomia de 2 Níveis
-│   │   └── backlog-bdd.md            # Contratos DoR/DoD V2, Backlog US-01 a US-11 e Gherkin BDD
-│   └── operations/
-│       └── sre-finops.md             # SLOs/SLIs, OpenTelemetry, DR (RPO < 5m, RTO < 30m) e FinOps
-├── Makefile                          # Targets de automação (make serve, make build, make clean)
-├── mkdocs.yml                        # Configuração do MkDocs Material + Mermaid + Search PT
-└── requirements.txt                  # Dependências Python fixadas
+Repositório central de **Docs-as-Code** (MkDocs Material + Mermaid.js) contendo Visão Executiva V3, ADRs (ADR-001 a ADR-010), Modelo C4, Fluxos Críticos, PRD Core Banking (`RN01–RN06`, `UC-01–UC-08`), Backlog Scrum V3 (`US-01–US-15`), BDD Gherkin e Manuais SRE/FinOps.
+
+- **Repositório:** `Sorobanerp/pfm-docs`
+- **Vínculo com `pfm-docs`:** `ADR-001 a ADR-010 | US-01 a US-15`
+
+```mermaid
+flowchart LR
+    DOCS["pfm-docs (MkDocs Material)"] -->|mkdocs build --strict| CI["GitHub Actions CI"]
+    CI -->|Merge main| PAGES["GitHub Pages (Documentação Viva V3)"]
 ```
 
 ---
 
-## 2. Como Visualizar Localmente
+## 2. Pré-requisitos & Variáveis de Ambiente
 
-Você pode executar o portal localmente usando **Python `venv`** (automático via `Makefile`) ou via **Docker**.
+### Pré-requisitos
+- Python 3.12+ e `pip`
+- MkDocs Material (`requirements.txt`)
 
-### Opção A — Usando `make serve` (Recomendado)
+### Variáveis de Ambiente (Sem Segredos Hardcoded)
+| Variável | Padrão Local | Descrição |
+| :--- | :---: | :--- |
+| `PORT` | `18000` | Porta local do servidor MkDocs (evita colisão com Portainer na `8000`) |
+| `NO_MKDOCS_2_WARNING` | `1` | Suprime aviso informativo de ciclo futuro do MkDocs |
 
-O comando `make serve` cria automaticamente o ambiente virtual `.venv` (caso não exista), instala o `mkdocs-material` e inicia o servidor com *live-reload* na porta **18000** (faixa `1xxxx` reservada ao PFM para não colidir com o Portainer em `8000`):
+> **Segurança (Zero-Trust):** Nunca commite tokens, senhas, chaves AWS ou strings de conexão com credenciais reais. Utilize `.env` local (ignorado no `.gitignore`) ou AWS Secrets Manager / GitHub OIDC.
+
+---
+
+## 3. Como Executar Localmente
 
 ```bash
-make serve
-# Para forçar uma porta específica:
-make serve PORT=18001
-```
-
-Acesse no navegador: **[http://localhost:18000/pfm-docs/](http://localhost:18000/pfm-docs/)**.
-
-### Opção B — Usando Docker diretamente
-
-Caso prefira rodar sem instalar pacotes Python locais:
-
-```bash
-make serve-docker
-# Ou diretamente:
-docker run --rm -it -p 18000:8000 -v $(pwd):/docs squidfunk/mkdocs-material:latest
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+.venv/bin/mkdocs serve -a 0.0.0.0:18000
+# Acesse: http://localhost:18000
 ```
 
 ---
 
-## 3. Como Validar o Build Estático
-
-Para compilar o portal estático na pasta `./site` com verificação estrita de links e sintaxe (`--strict`):
+## 4. Como Testar e Validar
 
 ```bash
-make build
+# Build estrito (falha em links quebrados ou avisos)
+NO_MKDOCS_2_WARNING=1 .venv/bin/mkdocs build --clean --strict
 ```
 
 ---
 
-## 4. Como Publicar no GitHub Pages
+## 5. Como Provisionar / Validar na Nuvem
 
-O repositório já possui o workflow `.github/workflows/deploy-pages.yml` configurado para publicação automática via GitHub Actions:
+1. Fluxo Gitflow: `feat/*` $\rightarrow$ `develop` $\rightarrow$ `main` (apenas documentação estática, zero recursos cloud).
+2. Pós-deploy: verificar job `Publicar no GitHub Pages` no GitHub Actions e acessar `https://sorobanerp.github.io/pfm-docs/`.
 
-1. No repositório do GitHub, acesse **Settings → Pages**.
-2. Em **Build and deployment → Source**, selecione **GitHub Actions**.
-3. Faça push para a branch `main`:
-   ```bash
-   git push -u origin main
-   ```
-4. A action `Deploy MkDocs Material to GitHub Pages` executará `mkdocs build --clean --strict` e publicará automaticamente o artefato na URL oficial do GitHub Pages.
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para regras de Conventional Commits e [CHANGELOG.md](CHANGELOG.md) para histórico de versões.
