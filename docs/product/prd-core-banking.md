@@ -1,6 +1,6 @@
-# PRD Core Banking — Regras de Negócio (RN01–RN06) & Taxonomia Oficial
+# PRD Core Banking V3 — Regras de Negócio (RN01–RN06), Casos de Uso & Taxonomia Oficial
 
-Este documento estabelece o **Product Requirements Document (PRD)** de engenharia de domínio da plataforma **PFM Core Banking**, especificando as invariantes contábeis obrigatórias (**RN01 a RN06**) e a **Taxonomia Oficial de 2 Níveis**.
+Este documento estabelece o **Product Requirements Document (PRD V3)** de engenharia de domínio da plataforma **PFM Core Banking**, especificando as invariantes contábeis obrigatórias (**RN01 a RN06**), a **Taxonomia Oficial de 2 Níveis**, os **Casos de Uso (`UC-01` a `UC-08`)** e os requisitos de governança SaaS Admin, Família e LGPD.
 
 ---
 
@@ -141,9 +141,9 @@ A plataforma opera sob o modelo de **Software as a Service (SaaS) Multi-Tenant**
    - `ACTIVE`: Assinatura adimplente com renovação automática via PIX ou Cartão.
    - `PAST_DUE`: Tolerância de 5 dias corridos após tentativa frustrada de cobrança, exibindo alerta suave no portal sem bloquear operações essenciais.
    - `SUSPENDED`: Acesso em modo somente leitura (*read-only*), permitindo exportação dos dados contábeis pelo titular, mas bloqueando novas ingestões e processamentos de IA.
-3. **Isolamento Zero-Trust no Painel SaaS Admin**:
+3. **Isolamento Zero-Trust & Auditoria Imutável no Painel SaaS Admin**:
    - Usuários com o perfil `PLATFORM_ADMIN` visualizam métricas agregadas do sistema (quantidade total de tenants ativos, volume de transações por minuto, taxa de erro de chamadas, faturamento e quotas de IA).
-   - **Garantia Arquitetural**: Sob nenhuma hipótese o `PLATFORM_ADMIN` tem permissão de consultar tabelas de lançamentos contábeis (`ledger_entries`), faturas (`card_statements`) ou orçamentos (`budget_plans`) pertencentes aos tenants, assegurando sigilo financeiro irrestrito garantido por RLS e criptografia KMS.
+   - **Garantia Arquitetural**: Sob nenhuma hipótese o `PLATFORM_ADMIN` tem permissão de consultar tabelas de lançamentos contábeis (`ledger_entries`), faturas (`card_statements`) ou orçamentos (`budget_plans`) pertencentes aos tenants, assegurando sigilo financeiro irrestrito garantido por RLS e criptografia KMS. Toda alteração de plano ou suspensão grava registro na tabela `audit_log` append-only (ADR-010).
 
 ---
 
@@ -168,7 +168,7 @@ A plataforma opera sob o modelo de **Software as a Service (SaaS) Multi-Tenant**
 | **`UC-01`** | Ingestão PDF em RAM + Checksum + Idempotência | Titular (`OWNER`) | `pfm-ingestion-bff-go`, `pfm-core-ledger-java` | Parsing de fatura de cartão 100% em memória volátil (Zero-Disk), validação de `diff = 0.0000` entre soma dos lançamentos e total declarado, e bloqueio de duplicatas via hash SHA-256. |
 | **`UC-02`** | Desdobramento de Parcelas e Resíduo Decimal Bancário | Titular (`OWNER`), Membro (`MEMBER`) | `pfm-core-ledger-java` | Compra parcelada em $N\times$ com alocação do resíduo de centavos na 1ª parcela (`RN06`), sem uso de ponto flutuante IEEE 754, garantindo soma exata do valor original. |
 | **`UC-03`** | Apuração de Regime de Caixa vs. Regime de Competência | Titular (`OWNER`) | `pfm-core-ledger-java` | Segregação estrita entre data da compra (Competência - afeta orçamento do mês) e data de pagamento da fatura (Caixa - afeta saldo em conta) conforme `RN01`. |
-| **`UC-04`** | Categorização Inteligente em 3 Camadas (L1/L2/L3) | Sistema / Motor IA | `pfm-ai-worker-python`, `pfm-core-ledger-java` | Classificação na Taxonomia Oficial de 2 Níveis via funil determinístico (L1 Regex/Cache), modelo local ONNX $<10\text{ms}$ (L2) e fallback em Cloud LLM anonimizado (L3). |
+| **`UC-04`** | Categorização Inteligente em 3 Camadas (L1/L2/L3) | Sistema / Motor IA | `pfm-ai-worker-python` (Lambda Arm64), `pfm-core-ledger-java` | Classificação na Taxonomia Oficial de 2 Níveis via Worker Serverless Event-Driven (ADR-009), sem conexão direta ao PostgreSQL: L1 Regex/Redis, L2 ONNX $<12\text{ms}$ e L3 Cloud LLM anonimizado. |
 | **`UC-05`** | Projeção Preditiva de Fluxo de Caixa (Forecast) | Titular (`OWNER`) | `pfm-forecast-engine-go` | Simulação de liquidez futura para os próximos 30, 60 e 90 dias com base em gastos recorrentes, parcelas contratadas e sazonalidade histórica. |
 | **`UC-06`** | Notificação Proativa de Limiar de Orçamento e Anomalias | Sistema / Alertas | `pfm-forecast-engine-go`, `pfm-web-nextjs` | Disparo automático de alertas quando o consumo de uma categoria atinge 80% e 100% do teto, ou quando uma despesa foge do padrão histórico da família. |
 | **`UC-07`** | Painel SaaS Admin (Gestão de Tenants, Planos e Quotas) | Administrador (`PLATFORM_ADMIN`) | `pfm-core-ledger-java`, `pfm-web-nextjs` | Monitoramento global de tenants, status de assinatura (`TRIAL`, `ACTIVE`, `SUSPENDED`), consumo de quotas de IA e storage sem expor dados financeiros privados dos clientes. |
