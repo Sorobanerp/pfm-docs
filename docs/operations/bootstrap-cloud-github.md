@@ -53,14 +53,13 @@ default_tags {
 
 A estratégia prioriza custos extremamente enxutos durante o Piloto Familiar (5 usuários), mantendo alta fidelidade técnica com a arquitetura de produção:
 
-#### 1. AWS (Região Primária / Default — `sa-east-1` / `us-east-1`): ~US\$ 41 / mês
+#### 1. AWS (Região Primária / Default — `us-east-2`): US\$ 12 a US\$ 24 / mês (Piloto V3 / ADR-008)
 - **Storage de Estado Remoto:** S3 Bucket criptografado com SSE-KMS + DynamoDB Table para *State Locking* (US\$ 0,50/mês).
-- **PostgreSQL Core Ledger & AI Rules:** Amazon RDS PostgreSQL 16 `db.t4g.micro` Single-AZ com 20 GB gp3 e Auto-Pause habilitado em horários ociosos (US\$ 14,00/mês).
-- **Computação (BFF, Ledger, Forecast, AI, Web):** AWS ECS Fargate com tasks dimensionadas para `0.25 vCPU / 0.5 GB RAM` sob **Fargate Spot** (redução de 70% nos custos normais de Fargate — US\$ 12,50/mês).
-- **Substituição do NAT Gateway (Econômico FinOps):** Utilização de instância EC2 `t4g.nano` rodando `fck-nat` (open-source NAT instance) em substituição ao AWS Managed NAT Gateway, economizando **US\$ 32,40/mês** fixos (Custo: US\$ 3,20/mês vs. US\$ 36,00/mês do NAT gerenciado).
-- **Event Streaming:** Apache Kafka (KRaft) em container Fargate leve ou Strimzi Single-Broker em volume EBS criptografado (US\$ 8,00/mês).
-- **KMS Envelope Encryption:** 1 Customer Managed Key (CMK) para rotação anual de faturas e segredos (US\$ 1,00/mês + centavos por requisição).
-- **FinOps Budget Alert:** Alerta rígido no AWS Budgets configurado para **US\$ 50,00/mês** com disparo de e-mail e webhook quando o consumo projetado atingir 80% (US\$ 40,00).
+- **PostgreSQL Core Ledger & Audit Log:** Amazon RDS PostgreSQL 16 `db.t4g.micro` Single-AZ com 20 GB gp3 e parada noturna automatizada via `pfm-finops-manager` (US\$ 7,50–12,00/mês).
+- **Computação (BFF, Ledger, Forecast, Web):** AWS ECS Fargate Spot (`linux/arm64` Graviton, `0.25 vCPU / 0.5 GB RAM`) com plano de controle gratuito e Service Connect `pfm.internal` (US\$ 3,50–8,00/mês).
+- **Worker IA Serverless (`pfm-ai-worker-python`):** AWS Lambda Arm64 orientada a eventos Kafka/gRPC — **US\$ 0,00 ocioso** (ADR-009).
+- **Event Streaming & Cache:** **Upstash Kafka & Redis Serverless** com TLS/SASL (Free Tier até 10.000 msgs/cmds dia — US\$ 0,00–3,50/mês).
+- **FinOps Budget Alert:** Alerta preventivo em **US\$ 20,00/mês** e *Circuit-Breaker* automático em **US\$ 30,00/mês** via `pfm-finops-manager`.
 
 #### 2. Microsoft Azure (Região Secundária DR — `brazilsouth` / `eastus`): Warm Standby
 - **Backend de Estado:** Azure Storage Account (Blob Storage com Imutabilidade e Encriptação gerenciada) para `terraform.tfstate`.
@@ -155,6 +154,19 @@ Todo PR para `main` deve conter o checklist de governança preenchido no corpo d
 | **Semgrep** | CI PR (`develop` & `main`) | Bloqueio em caso de vulnerabilidades OWASP Top 10 ou injeção SQL/XXE. |
 | **Trivy** | Build de Imagem Docker | Falha o build se encontrar vulnerabilidades `CRITICAL` ou `HIGH` na imagem base Distroless. |
 | **SonarCloud** | Análise Estática & Cobertura | **Gate $\ge$ 95% de Cobertura de Código Novo**, Duplicação de Código $< 3\%$, 0 *Bugs*, 0 *Security Hotspots* abertos. |
+
+### 4.4. Versionamento SemVer 2.0.0, Conventional Commits & `CHANGELOG.md` Governado
+
+Todos os repositórios da organização `Sorobanerp` seguem obrigatoriamente a especificação **Semantic Versioning 2.0.0 (`MAJOR.MINOR.PATCH`)** combinada ao padrão **Conventional Commits**:
+
+- **`feat:`** $\rightarrow$ Incrementa `MINOR` (`0.x.0`), indicando nova funcionalidade retrocompatível.
+- **`fix:` / `perf:` / `security:`** $\rightarrow$ Incrementa `PATCH` (`0.0.x`), indicando correção de bug ou melhoria sem quebra de contrato.
+- **`BREAKING CHANGE:` / `feat!:`** $\rightarrow$ Incrementa `MAJOR` (`x.0.0`), exigindo nova versão major de contrato no `pfm-contracts`.
+- **`docs:` / `chore:` / `ci:` / `refactor:`** $\rightarrow$ Governança interna e documentação sem impacto de API pública.
+
+**Geração Automática de `CHANGELOG.md`:**
+1. Ao abrir PR de `develop` para `release/vX.Y.Z`, o pipeline de release gera/atualiza o `CHANGELOG.md` agrupando automaticamente *Features*, *Bug Fixes* e *Security/FinOps* a partir dos Conventional Commits.
+2. O merge da `release/vX.Y.Z` na `main` cria a Git Tag anotada `vX.Y.Z` e publica os artefatos auditáveis.
 
 ---
 

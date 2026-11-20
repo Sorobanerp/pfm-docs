@@ -70,18 +70,18 @@ markdown_extensions:
       custom_checkbox: true
 
 nav:
-  - Visão Executiva: index.md
+  - Visão Executiva (V3): index.md
   - Arquitetura:
-      - ADRs V2 (Decisões Arquiteturais): architecture/adrs.md
-      - Modelo C4 & Topologia (14 Repos): architecture/c4-model.md
+      - ADRs V3 (Decisões Arquiteturais): architecture/adrs.md
+      - Modelo C4 & Topologia (V3): architecture/c4-model.md
       - Fluxos Críticos & Sequência: architecture/flows.md
   - Produto & Domínio:
-      - PRD Core Banking & Regras (RN01–RN06): product/prd-core-banking.md
-      - Backlog Scrum & Especificações BDD: product/backlog-bdd.md
+      - PRD Core Banking V3 & Casos de Uso: product/prd-core-banking.md
+      - Backlog Scrum V3 & BDD Gherkin: product/backlog-bdd.md
       - Backlog Estratégico Release 2.1: product/BACKLOG_RELEASE_2_1.md
   - Operações & Go-Live:
-      - Plano de Bootstrap & Governança: operations/bootstrap-cloud-github.md
-      - SLOs, Observabilidade, DR & FinOps: operations/sre-finops.md
+      - Plano de Bootstrap, SDLC & SemVer: operations/bootstrap-cloud-github.md
+      - SLOs, OTel, FinOps & Runbooks: operations/sre-finops.md
       - Performance (k6) & Capacity Planning: operations/RELATORIO_PERFORMANCE_CAPACITY_PLANNING.md
   - Auditoria Técnica V2:
       - Relatório de Auditoria (14 Repos): audit/RELATORIO_AUDITORIA_V2.md
