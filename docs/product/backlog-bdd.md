@@ -1,33 +1,33 @@
-# Backlog Scrum (US-01 a US-15), Contratos DoR/DoD V2 & Cenários BDD
+# Backlog Scrum (US-01 a US-15), Contratos DoR/DoD V3 & Cenários BDD
 
-Este documento define os contratos de qualidade de engenharia (**Definition of Ready V2** e **Definition of Done V2**), o **Backlog do Produto (US-01 a US-11)** priorizado por épicos e as especificações executáveis em **Gherkin (BDD)**.
+Este documento define os contratos de qualidade de engenharia (**Definition of Ready V3** e **Definition of Done V3**), o **Backlog do Produto V3 (`US-01` a `US-15`)** priorizado por épicos e as especificações executáveis em **Gherkin (BDD)**.
 
 ---
 
-## 1. Contratos de Governança Ágil (DoR & DoD V2)
+## 1. Contratos de Governança Ágil (DoR & DoD V3)
 
-### Definition of Ready (DoR V2) — Critérios de Entrada na Sprint
+### Definition of Ready (DoR V3) — Critérios de Entrada na Sprint
 
 Nenhuma User Story pode ser puxada para o Sprint Backlog sem cumprir **100%** dos itens abaixo:
 
-- [x] **Vínculo de Domínio & Regra de Negócio**: A história referencia explicitamente quais regras (**RN01 a RN06**) e ADRs (**ADR-001 a ADR-007**) são impactados.
+- [x] **Vínculo de Domínio & Regra de Negócio**: A história referencia explicitamente quais regras (**RN01 a RN06**) e ADRs (**ADR-001 a ADR-010**) são impactados.
 - [x] **Contrato First (`pfm-contracts`)**: Alterações de API REST (OpenAPI 3.1), gRPC (Protobuf v3) ou eventos Kafka (JSON Schema/Avro) já estão especificadas e revisadas.
 - [x] **Critérios de Aceite em Gherkin**: Mínimo de 1 cenário de caminho feliz (*Happy Path*), 1 cenário de borda financeira/arredondamento e 1 cenário de falha/idempotência escritos em Gherkin.
-- [x] **Análise de Segurança & Multitenancy**: Impacto em PostgreSQL RLS (`tenant_id`) e privacidade (PII / LGPD) mapeado.
-- [x] **Métricas de Observabilidade Definidas**: SLIs e spans OpenTelemetry esperados documentados na história.
+- [x] **Análise de Segurança & Multitenancy**: Impacto em PostgreSQL RLS (`tenant_id`), `audit_log` append-only e privacidade (PII / LGPD) mapeado.
+- [x] **Métricas de Observabilidade Definidas**: SLIs e spans OpenTelemetry (Tail-Based Sampling) esperados documentados na história.
 
-### Definition of Done (DoD V2) — Critérios de Conclusão e Produção
+### Definition of Done (DoD V3) — Critérios de Conclusão e Produção
 
 Uma User Story só é considerada **DONE** quando validada automaticamente no pipeline CI/CD:
 
-- [x] **Arquitetura Hexagonal Verificada**: Testes de arquitetura (*ArchUnit* no Java / linters em Go e Python) aprovados com **zero dependências** de frameworks dentro do pacote `domain`.
+- [x] **Arquitetura Hexagonal Verificada**: Testes de arquitetura (*ArchUnit* no Java / linters em Go e Python) aprovados com **zero dependências** de frameworks dentro do pacote `domain` (e zero acesso direto ao PostgreSQL no `pfm-ai-worker-python`).
 - [x] **Cobertura de Testes Automatizados**:
-  - Cobertura de linhas e branches $\ge 90\%$ no `domain` (regras contábeis RN01–RN06);
+  - Cobertura de linhas e branches $\ge 90\%$ no `domain` e Gate global $\ge 95\%$ no **SonarCloud Portfolio**;
   - Testes de integração reais com **Testcontainers** (PostgreSQL 16 com RLS ativo, Kafka e Redis);
   - Testes de contrato (*Contract Testing*) e cenários BDD Gherkin passando.
-- [x] **Segurança & Qualidade Estática**: SAST (SonarQube Quality Gate A), escaneamento de vulnerabilidades de container (Trivy sem CVEs `CRITICAL`/`HIGH`) e validação de RLS cross-tenant (tentativa de leitura por outro tenant deve retornar 0 registros).
-- [x] **Idempotência & Resiliência**: Mutação validada com repetição de `Idempotency-Key` e Transactional Outbox testado.
-- [x] **Telemetria Ativa**: Traces OpenTelemetry, logs JSON estruturados (com `trace_id`, `span_id`, `tenant_id` e zero PII) e métricas Prometheus expostas.
+- [x] **Segurança & Qualidade Estática**: SAST (Semgrep + SonarCloud Quality Gate A), escaneamento de vulnerabilidades de container/IaC (Trivy sem CVEs `CRITICAL`/`HIGH`) e validação de RLS cross-tenant.
+- [x] **Governança SemVer & Changelog**: Commits no padrão **Conventional Commits**, versionamento **SemVer 2.0.0** e entrada gerada no `CHANGELOG.md`.
+- [x] **Telemetria Ativa & Auditoria**: Traces OTel exportados para o Datadog Unified Dashboard (com `Redaction Processor` Zero PII), eventos críticos gravados no `audit_log` append-only e DLQs cifradas via KMS configuradas.
 
 ---
 
@@ -43,7 +43,7 @@ Uma User Story só é considerada **DONE** quando validada automaticamente no pi
 | **US-06** | Ingestão PDF (RAM) | **Como** Titular da Conta, **quero** enviar faturas PDF do meu cartão para processamento 100% em memória RAM (`Zero-Disk`), **para** importar todos os lançamentos sem que meu arquivo fique salvo em disco. | RN06, ADR-001, ADR-006 | 13 | P0 (Crítica) |
 | **US-07** | Mobile NFC-e Offline | **Como** Usuário Mobile, **quero** escanear o QR Code de cupons fiscais NFC-e mesmo sem internet (modo offline-first), **para** que sejam sincronizados automaticamente quando houver conexão. | ADR-001, ADR-003, ADR-004 | 8 | P1 (Alta) |
 | **US-08** | SEFAZ Scraper | **Como** Plataforma de Ingestão, **quero** extrair de forma resiliente os itens e CNPJ da NFC-e nos portais SEFAZ estaduais com Circuit Breaker e Retries, **para** enriquecer os gastos mesmo quando a SEFAZ oscilar. | ADR-004, ADR-005 | 8 | P1 (Alta) |
-| **US-09** | IA Categorizer 3-Tier | **Como** Titular da Conta, **quero** que minhas transações sejam classificadas automaticamente na Taxonomia Oficial de 2 Níveis pelo pipeline de 3 camadas (Regras $\rightarrow$ ONNX Local $\rightarrow$ LLM), **para** não categorizar gastos manualmente. | Taxonomia 2 Níveis, ADR-001, ADR-004 | 13 | P1 (Alta) |
+| **US-09** | IA Categorizer 3-Tier (Serverless) | **Como** Titular da Conta, **quero** que minhas transações sejam classificadas automaticamente na Taxonomia Oficial de 2 Níveis pelo Worker IA Serverless (**AWS Lambda Arm64**, custo $0 ocioso) em 3 camadas (L1 $\rightarrow$ L2 ONNX $\rightarrow$ L3 LLM) sem acesso direto ao PostgreSQL, **para** não categorizar gastos manualmente com segurança e baixo custo. | Taxonomia 2 Níveis, ADR-009 | 13 | P1 (Alta) |
 | **US-10** | Motor de Conciliação | **Como** Titular da Conta, **quero** que cupons NFC-e, faturas PDF e lançamentos do extrato referentes à mesma compra sejam conciliados sem duplicar meu saldo contábil, **para** manter minha contabilidade íntegra. | RN04, ADR-005 | 13 | P0 (Crítica) |
 | **US-11** | Web Portal & Dashboards | **Como** Titular da Conta, **quero** visualizar no Portal Web o comparativo de Regime de Competência vs. Regime de Caixa, evolução do orçamento e fila de conciliação assistida, **para** tomar decisões financeiras claras. | RN01, RN02, RN04 | 8 | P2 (Média) |
 | **US-12** | Painel SaaS Admin | **Como** Administrador da Plataforma (`PLATFORM_ADMIN`), **quero** visualizar todos os tenants (famílias/contas), gerenciar planos (`FREE`, `INDIVIDUAL_PRO`, `FAMILY_PLUS`), status de assinatura (`TRIAL`, `ACTIVE`, `PAST_DUE`, `SUSPENDED`), quotas de ingestão/IA e métricas globais de uso sem expor dados financeiros privados (respeitando PostgreSQL RLS), **para** administrar a plataforma com governança e privacidade. | RN05, ADR-006 | 8 | P1 (Alta) |
@@ -237,4 +237,30 @@ Funcionalidade: Interface Widescreen Fluida, Design System Apple Craft e Paleta 
     Então os painéis de "Regime de Competência", "Regime de Caixa" e "Fila de Conciliação" devem ocupar a largura total útil da viewport
     E nenhuma barra de rolagem horizontal indesejada deve ser gerada no navegador
     E a barra de navegação lateral deve manter estado colapsável com transições suaves a 60 FPS
+```
+
+---
+
+### Feature 08: Auditoria Imutável (`audit_log` + RLS), DLQ Cifrada KMS & Worker IA Serverless (US-09 / ADR-009 / ADR-010)
+
+```gherkin
+# language: pt
+Funcionalidade: Trilha de Auditoria Imutável, DLQ Cifrada KMS e Execução Serverless do Worker IA (ADR-009 / ADR-010)
+  Como Engenheiro de Segurança e SRE
+  Quero garantir que toda mutação crítica gere um registro append-only protegido por RLS, que falhas persistentes sejam isoladas em DLQ cifrada e que o Worker IA opere isolado do PostgreSQL
+  Para assegurar conformidade regulatória e custo zero ocioso em IA
+
+  Cenário: Imutabilidade estrita da tabela audit_log e isolamento por tenant via RLS (ADR-010)
+    Dado que o titular "OWNER" alterou o teto de orçamento da categoria "ALIMENTACAO"
+    E um registro de auditoria foi gravado na tabela "audit_log" com "tenant_id" e "trace_id"
+    Quando uma rotina de aplicação tenta executar UPDATE ou DELETE sobre a tabela "audit_log"
+    Então o PostgreSQL deve rejeitar a operação por ausência de privilégio (Role Append-Only)
+    E qualquer consulta de outro tenant deve retornar 0 registros devido ao FORCE ROW LEVEL SECURITY
+
+  Cenário: Worker IA Serverless (AWS Lambda Arm64) processa evento Kafka sem abrir conexão SQL e envia falha irrecuperável para DLQ cifrada (ADR-009)
+    Dado um lote de 50 transações publicado no tópico Upstash Kafka "pfm.transactions.raw"
+    Quando a função AWS Lambda Arm64 "pfm-ai-worker-python" é acionada pelo evento
+    Então ela deve executar a categorização L1/L2/L3 utilizando apenas Upstash Redis e modelos ONNX em memória
+    E nenhuma conexão TCP ou driver PostgreSQL deve ser inicializado pelo worker
+    E caso uma mensagem possua schema corrompido após 3 tentativas, o payload deve ser cifrado via KMS e encaminhado para "pfm.transactions.raw.dlq"
 ```

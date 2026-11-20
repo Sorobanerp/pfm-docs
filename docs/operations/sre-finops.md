@@ -19,40 +19,34 @@ A plataforma opera sob gestão rigorosa de **Service Level Indicators (SLIs)** e
 
 ---
 
-## 2. Observabilidade Full-Stack com OpenTelemetry (OTel)
+## 2. Observabilidade Multi-Cloud Unificada (OTel Tail-Sampling $\rightarrow$ Datadog) & Auditoria Imutável
 
-Todos os 14 repositórios utilizam o **OpenTelemetry SDK / Auto-Instrumentation** exportando via protocolo **OTLP/gRPC** para o **OpenTelemetry Collector** implantado como *DaemonSet* no Kubernetes.
+Em conformidade com o **ADR-010**, todos os repositórios utilizam o **OpenTelemetry SDK / Auto-Instrumentation** exportando via protocolo **OTLP/gRPC** para o **OpenTelemetry Collector**, que aplica higienização LGPD e **Tail-Based Sampling** antes de enviar ao **Datadog Unified Dashboard** (visão única AWS / Azure / GCP por jornada de negócio `UC-01` a `UC-08`).
 
 ```mermaid
 flowchart LR
-    subgraph Workloads["Microsserviços Poliglotas (K8s Pods)"]
+    subgraph Workloads["Workloads Multi-Cloud (ECS Spot / Lambda Arm64 / ACA / Cloud Run / K8s)"]
         JAVA["Java 25 Services<br/>(OTel Java Agent 2.x)"]
         GO["Golang Services<br/>(OTel Go SDK)"]
-        PY["Python AI Service<br/>(OTel Python FastAPI)"]
+        PY["Lambda AI Worker (Python)<br/>(OTel Lambda Layer)"]
     end
 
-    subgraph Collector["Camada de Coleta & Sanitização"]
-        OTEL["OpenTelemetry Collector<br/>[DaemonSet]<br/>- Redaction Processor (Zero PII)<br/>- Tail Sampling (100% Errors / Slow, 10% OK)<br/>- Batch & Memory Limiter"]
+    subgraph Collector["OpenTelemetry Collector (Sanitização & Economia)"]
+        OTEL["OpenTelemetry Collector<br/>- Filter Processor (Descarta /health & /actuator)<br/>- Redaction Processor (Zero PII / CPF / Cartão)<br/>- Tail-Based Sampling: 100% Erros & >500ms | 5-10% Sucessos"]
     end
 
-    subgraph Backends["Backends Observabilidade (Cloud-Agnostic / LGTM)"]
-        PROM["Prometheus / Mimir<br/>(Métricas RED & USE)"]
-        TEMPO["Grafana Tempo / Jaeger<br/>(Traces Distribuídos)"]
-        LOKI["Grafana Loki / OpenSearch<br/>(Logs JSON Estruturados)"]
-        GRAF["Grafana Dashboards &<br/>Alertmanager (SLO Burn Rate)"]
+    subgraph Governance["Observabilidade, Qualidade & Auditoria Imutável"]
+        DD["📊 Datadog Unified Dashboard<br/>Jornadas UC-01..UC-08 (AWS/Azure/GCP)"]
+        SONAR["🛡️ SonarCloud Portfolio<br/>Quality Gate >= 95% & SAST"]
+        AUDIT[("🔒 audit_log (PostgreSQL)<br/>Append-Only + FORCE RLS + DLQ KMS")]
     end
 
     JAVA -->|"OTLP gRPC"| OTEL
     GO -->|"OTLP gRPC"| OTEL
     PY -->|"OTLP gRPC"| OTEL
 
-    OTEL -->|"Remote Write"| PROM
-    OTEL -->|"OTLP Trace"| TEMPO
-    OTEL -->|"OTLP Logs"| LOKI
-
-    PROM --> GRAF
-    TEMPO --> GRAF
-    LOKI --> GRAF
+    OTEL -->|"OTLP HTTPS (Tail-Sampled)"| DD
+    JAVA -.->|"Mutações Críticas"| AUDIT
 ```
 
 ### Padrão de Correlação e Sanitização de Logs (LGPD)
@@ -125,7 +119,22 @@ flowchart TB
 
 ---
 
-## 4. Comparativo FinOps Multicloud (AWS vs. Azure vs. GCP)
+## 4. FinOps & ROI: Trilha Evolutiva de Custos + Comparativo Multicloud
+
+### 4.1. Tabela Comparativa Consolidada por Estágio de Maturidade (V3)
+
+| Dimensão Arquitetural | Estágio 1: Piloto / Produção Inicial | Estágio 2: Escala (100 Tenants) | Estágio 3: Hiperescala Kubernetes (500+ Tenants) |
+| :--- | :--- | :--- | :--- |
+| **Compute Principal** | **AWS ECS Fargate Spot (Arm64)**<br/>(Equiv.: Azure Container Apps / GCP Cloud Run) | **ECS Fargate Spot / ACA / Cloud Run** (24x7 Multi-task) | **Kubernetes (EKS / AKS / GKE)**<br/>+ **Karpenter Spot** + **KEDA** |
+| **Control Plane Orquestrador** | **US$ 0,00 / mês** (Gerenciado Serverless) | **US$ 0,00 / mês** | **US$ 73,00 / mês** (Control Plane EKS/AKS/GKE) |
+| **Worker IA (`pfm-ai-worker`)** | **AWS Lambda Arm64** (Custo $0 ocioso) | **AWS Lambda Arm64** (Rajadas sob demanda) | **Lambda / KEDA Event Workers** |
+| **Banco de Dados (PostgreSQL 16 + RLS)** | RDS `db.t4g.micro` Single-AZ<br/>(Park Noturno 20h30–06h00 BRT) | RDS / Aurora Serverless v2 (Multi-AZ) | Aurora PostgreSQL Multi-AZ + Read Replicas |
+| **Mensageria & Cache** | **Upstash Kafka & Redis Serverless** (Free/Pay-per-use) | **Upstash Pro** / MSK Serverless | **Amazon MSK / Confluent** + **ElastiCache Valkey** |
+| **Observabilidade & Qualidade** | OTel Tail-Sampling $\rightarrow$ Datadog Free + SonarCloud | Datadog Pro Controlado + OTel Collector | Datadog / LGTM Multi-AZ + Audit Log Cross-Region |
+| **Custo Mensal Total Estimado (USD)** | **US$ 12,00 – US$ 24,00 / mês** | **~US$ 115,00 / mês** | **~US$ 420,00 / mês** |
+| **Unit Economics (Custo / Tenant)** | Fase de Validação / Bootstrapping | **~US$ 1,15 / tenant** | **< US$ 0,84 / tenant** (diluição em escala) |
+
+### 4.2. Comparativo FinOps Multicloud em Hiperescala (100.000 Tenants Ativos)
 
 O dimensionamento de referência considera um ambiente de Produção de alta disponibilidade (**Multi-AZ**) atendendo **100.000 usuários ativos (tenants)**, processando ~15 milhões de transações/mês, 250.000 faturas PDF/mês em RAM e 1,2 milhão de notas NFC-e/mês.
 
@@ -265,4 +274,15 @@ A Lambda `pfm-finops-manager` (`arn:aws:lambda:us-east-2:366476833548:function:p
 2. **Circuit-Breaker de Orçamento (AWS Budgets Integration)**:
    - **Alerta Preventivo (80%)**: Se a projeção de gastos mensais em `us-east-2` ultrapassar **US$ 20,00 / mês**, a Lambda emite notificação de alerta preventivo via SNS/Slack.
    - **Corte de Emergência (100% / Circuit-Breaker)**: Caso o consumo atinja **US$ 30,00 / mês**, a Lambda ativa o modo de contenção estrita, reduzindo instâncias e tarefas computacionais para escala zero até aprovação explícita do administrador FinOps.
+
+---
+
+## 7. Runbooks de Auditoria de Falhas Críticas (V3)
+
+| Código | Cenário de Falha Crítica | Severidade | Ação de Contenção & Auditoria Imutável |
+| :--- | :--- | :---: | :--- |
+| **RB-01** | **Mensagens em DLQ Cifrada (`<topic>.dlq`)** | P1 (Alta) | 1. Verificar trace com `status=ERROR` no Datadog Unified via `trace_id`.<br/>2. Inspecionar metadados sem PII; decifrar payload via role auditada KMS apenas em ambiente seguro.<br/>3. Corrigir bug/contrato e executar replay idempotente com registro no `audit_log`. |
+| **RB-02** | **Tentativa de Violação RLS / Mutação em `audit_log`** | **SEV-0 (Crítica)** | 1. Bloqueio imediato pelo PostgreSQL (`FORCE ROW LEVEL SECURITY` / Role Append-Only).<br/>2. Alerta instantâneo no Datadog (`100%` retido pelo Tail-Based Sampling).<br/>3. Revogar sessão JWT/IAM suspeita e preservar snapshot forense. |
+| **RB-03** | **Falha de `tofu apply` em Produção** | P1 (Alta) | 1. O workflow `infra-opentofu-ci-cd.yml` aciona automaticamente o rollback do state para `backups/terraform.tfstate.last-good`.<br/>2. Validar integridade dos serviços no ECS/Lambda e verificar `pfm-finops-manager` (`action=audit`). |
+| **RB-04** | **Estouro de Orçamento FinOps (> US$ 30/mês)** | P2 (FinOps) | 1. `pfm-finops-manager` aciona `stop` emergencial (ECS `desired=0`, RDS parado).<br/>2. Analisar relatório `audit` de run-rate e identificar loop de invocação ou tráfego anômalo. |
 
