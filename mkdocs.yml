@@ -1,5 +1,5 @@
 site_name: "Pulse Docs -- Plataforma PFM Core Banking"
-site_description: "Portal Institucional de Arquitetura, Produto, Design System, Seguranca LGPD e Engenharia SRE"
+site_description: "Portal Institucional de Negocio, Produto, Design System UX/UI, Arquitetura C4/ADRs e Operacoes SRE/FinOps"
 site_url: https://sorobanerp.github.io/pfm-docs/
 repo_name: Sorobanerp/pfm-docs
 repo_url: https://github.com/Sorobanerp/pfm-docs
@@ -77,30 +77,21 @@ markdown_extensions:
       custom_checkbox: true
 
 nav:
-  - Portal Pulse Docs (Home): index.md
-  - Produto & Dominio:
-      - PRD Core Banking V3 & Casos de Uso: product/prd-core-banking.md
-      - Backlog Scrum V3 & BDD Gherkin: product/backlog-bdd.md
-      - Backlog Estrategico Release 2.1: product/BACKLOG_RELEASE_2_1.md
-  - Design System (IDS):
-      - IDS PFM Pulse (Web & Android): design/ids-pfm-pulse.md
-  - Arquitetura (C4 & ADRs):
-      - ADRs V3 (Decisoes Arquiteturais): architecture/adrs.md
-      - Modelo C4 & Topologia (V3): architecture/c4-model.md
-      - Fluxos Criticos & Sequencia: architecture/flows.md
-  - Seguranca LGPD & FinOps:
-      - Conformidade LGPD, RLS & KMS: security/lgpd-cryptography-compliance.md
-      - SLOs, OTel, FinOps & Runbooks: operations/sre-finops.md
-  - Operacoes, Gitflow & DX Local:
-      - Guia de Execucao & Debug Local (DX): operations/local-development-guide.md
-      - Fluxo Gitflow Atlassian & Governanca: operations/gitflow-workflow.md
-      - Plano de Bootstrap, SDLC & SemVer: operations/bootstrap-cloud-github.md
-      - Performance (k6) & Capacity Planning: operations/RELATORIO_PERFORMANCE_CAPACITY_PLANNING.md
-  - Auditoria & Demo Executiva:
-      - Relatorio de Auditoria (15 Repos): audit/RELATORIO_AUDITORIA_V2.md
-      - Prompts de Remediacao Gerados: audit/PROMPTS_REMEDIACAO_GERADOS.md
-      - Validacao E2E (UC-01 a UC-06): audit/RELATORIO_VALIDACAO_E2E.md
-      - Validacao Web (Playwright) & Mobile: audit/VALIDACAO_INTERFACES_WEB_MOBILE.md
-      - Diagnostico & Delecao de Cascas: audit/AUDITORIA_REPOSITORIOS_DELECAO.md
-      - Roteiro Demo ao Vivo (20 min): demo/ROTEIRO_DEMO_AO_VIVO.md
-      - Apresentacao Executiva (Slides): demo/APRESENTACAO_EXECUTIVA_MVP.md
+  - Inicio: index.md
+  - 1. Visao de Negocio:
+      - Proposta de Valor, Mercado & Planos SaaS (BRL): 01-visao-negocio/proposta-valor-e-mercado.md
+  - 2. Visao de Produto:
+      - PRD Core Banking (RN01-RN06 & Taxonomia): 02-visao-produto/prd-core-banking.md
+      - Casos de Uso (UC-01 a UC-08): 02-visao-produto/casos-de-uso.md
+      - Backlog Scrum & Especificacao BDD (BRL): 02-visao-produto/backlog-e-bdd.md
+  - 3. Visao do Usuario (UX/UI):
+      - IDS Design System "PFM Pulse" (Web & Android): 03-visao-usuario/ids-design-system.md
+  - 4. Visao de Arquitetura:
+      - Arquitetura C4 & Catalogo dos 15 Repositorios: 04-visao-arquitetura/arquitetura-c4-e-repos.md
+      - Fluxos de Sequencia (PDF RAM, IA, NFC-e, SAC): 04-visao-arquitetura/fluxos-de-sequencia.md
+      - Seguranca Criptografica, RLS & LGPD: 04-visao-arquitetura/seguranca-e-lgpd.md
+      - Decisoes Arquiteturais (ADR-001 a ADR-010): 04-visao-arquitetura/decisoes-arquiteturais-adrs.md
+  - 5. Visao de Tecnologia & Operacoes:
+      - Desenvolvimento Local, IDEs, Swagger & gRPC: 05-visao-operacoes/desenvolvimento-local-e-ides.md
+      - Gitflow Atlassian, CI/CD OpenTofu & OTel: 05-visao-operacoes/gitflow-cicd-e-qualidade.md
+      - FinOps & Custos Cloud (USD + Estimativa BRL): 05-visao-operacoes/finops-e-custos-cloud.md
