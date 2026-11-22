@@ -1,13 +1,18 @@
 # Pulse Docs -- Plataforma PFM Core Banking
 
-Portal institucional unificado de Produto, Design System (IDS PFM Pulse), Arquitetura Hexagonal Multi-Cloud (C4 e ADRs 001-010), Seguranca LGPD (PostgreSQL 16 RLS e KMS Envelope Encryption), Engenharia FinOps e Execucao Local da organizacao `Sorobanerp`.
+<span class="badge-glow">Estagio Atual: Planejamento &amp; Arquitetura Validados -&gt; Validacao Local -&gt; Implantacao Cloud</span>
+<span class="badge-green">Release V3.2</span>
+<span class="badge-peach">Governanca Executiva 5 Visoes</span>
 
-[Explorar Arquitetura](architecture/c4-model.md){ .md-button .md-button--primary }
-[Guia de Execucao Local](operations/local-development-guide.md){ .md-button }
+Portal institucional unificado da plataforma **PFM Core Banking (PFM Pulse)** da organizacao `Sorobanerp`. Toda a documentacao esta estruturada em **5 Visoes Executivas por Audiencia** para Diretoria, Produto, Design UX/UI, Arquitetura de Software e Engenharia SRE/FinOps.
+
+[1. Visao de Negocio](01-visao-negocio/proposta-valor-e-mercado.md){ .md-button .md-button--primary }
+[4. Visao de Arquitetura](04-visao-arquitetura/arquitetura-c4-e-repos.md){ .md-button }
+[5. Guia Dev Local &amp; FinOps](05-visao-operacoes/desenvolvimento-local-e-ides.md){ .md-button }
 
 ---
 
-## 1. Indicadores Executivos da Plataforma (Big Numbers)
+## 1. Indicadores Institucionais da Plataforma (Big Numbers)
 
 <div class="grid cards kpi-4" markdown>
 
@@ -15,25 +20,25 @@ Portal institucional unificado de Produto, Design System (IDS PFM Pulse), Arquit
 
     ---
 
-    **Arquitetura Hexagonal Multi-Repo 1:1**
+    **Topologia Multi-Repo Hexagonal 1:1**
 
-    Microsservicos desacoplados (Java 25, Go 1.27, Python 3.12, Next.js 15, Android) com repositorios OpenTofu dedicados.
+    Microsservicos desacoplados (Java 25, Go 1.27, Python 3.12, Next.js 15, Android) com infraestrutura OpenTofu dedicada.
 
--   <span class="kpi-number">&lt; USD 24/mes</span>
+-   <span class="kpi-number">&lt; 5% em Outros</span>
 
     ---
 
-    **FinOps ECS Fargate Spot + Lambda + Upstash**
+    **Precisao de Categorizacao e Contabilidade**
 
-    Topologia AWS `us-east-2` ultra-enxuta com 0 clusters EKS, 0 NAT Gateways e automacao `pfm-finops-manager`.
+    Funil de IA em 3 camadas e motor de partidas dobradas eliminando gastos invisiveis e erros de centavos (`RN01` a `RN06`).
 
 -   <span class="kpi-number">2 AZs (us-east-2a/b)</span>
 
     ---
 
-    **Topologia Enxuta Well-Architected**
+    **Resiliencia Multi-AZ Well-Architected**
 
-    Alta disponibilidade regional com Service Connect / AWS Cloud Map (`pfm.internal`) para chamadas gRPC Leste-Oeste.
+    Topologia regional com descoberta interna gRPC (`pfm.internal`) e trilha documentada de evolucao para Kubernetes.
 
 -   <span class="kpi-number">100% LGPD &amp; RLS</span>
 
@@ -41,15 +46,73 @@ Portal institucional unificado de Produto, Design System (IDS PFM Pulse), Arquit
 
     **KMS Envelope Encryption + Audit Append-Only**
 
-    Isolamento `FORCE ROW LEVEL SECURITY` no PostgreSQL 16, chaves DEK por tenant no AWS KMS e Crypto-Shredding.
+    Isolamento `FORCE ROW LEVEL SECURITY` no PostgreSQL 16, chaves DEK por tenant e Crypto-Shredding (Art. 18 LGPD).
 
 </div>
 
 ---
 
-## 2. Fluxo Gitflow Atlassian e Governanca de Releases
+## 2. Mapa de Navegacao das 5 Visoes por Audiencia
 
-Todos os 15 repositorios operam com Branch Protection ativa em `main` e `develop`, validacao de Conventional Commits e bloqueio automatico de origem de branch (`Gitflow Branch Source Guard`).
+<div class="grid cards pillars-3" markdown>
+
+-   **1. Visao de Negocio (Diretoria &amp; Investidores)**
+
+    ---
+
+    Tese do produto **PFM Pulse ("Big Numbers First")**, dores resolvidas, substituicao de planilhas, modelo de assinatura SaaS em Real (`FREE`, `INDIVIDUAL_PRO R$ 29,90/mes`, `FAMILY_PLUS R$ 49,90/mes`) e governanca LGPD.
+
+    [Abrir Visao de Negocio ->](01-visao-negocio/proposta-valor-e-mercado.md)
+
+-   **2. Visao de Produto (PMs, Analistas &amp; QA)**
+
+    ---
+
+    Regras de negocio imutaveis (`RN01` Competencia vs. Caixa, `RN02` Limite != Orcamento, `RN03` Estornos), taxonomia de 2 niveis, casos de uso (`UC-01` a `UC-08`) e Backlog Scrum com cenarios BDD Gherkin em `R$`.
+
+    [PRD Core Banking ->](02-visao-produto/prd-core-banking.md) / [Casos de Uso ->](02-visao-produto/casos-de-uso.md) / [Backlog &amp; BDD ->](02-visao-produto/backlog-e-bdd.md)
+
+-   **3. Visao do Usuario -- UX/UI (Designers &amp; Frontend/Mobile)**
+
+    ---
+
+    Design System **IDS "PFM Pulse"** ("10 segundos por dia"), filosofia *Big Numbers First + Progressive Disclosure*, tokens `#8CBA51`, `#DEFF8B`, `#FBCEB5`, `#FF5D6C`, 6 telas Web e 4 telas Android Material 3.
+
+    [Abrir IDS Design System ->](03-visao-usuario/ids-design-system.md)
+
+-   **4. Visao de Arquitetura (Staff Architects &amp; Tech Leads)**
+
+    ---
+
+    Modelo C4 completo (Niveis 1 a 3), catalogo dos 15 repositorios, fluxos de sequencia (PDF em RAM, NFC-e, Ledger, SAC/Price), matriz criptografica LGPD/RLS e `ADR-001` a `ADR-010`.
+
+    [Arquitetura C4 ->](04-visao-arquitetura/arquitetura-c4-e-repos.md) / [Fluxos ->](04-visao-arquitetura/fluxos-de-sequencia.md) / [Seguranca LGPD ->](04-visao-arquitetura/seguranca-e-lgpd.md) / [ADRs ->](04-visao-arquitetura/decisoes-arquiteturais-adrs.md)
+
+-   **5. Visao de Tecnologia &amp; Operacoes (DevEx, SRE &amp; FinOps)**
+
+    ---
+
+    Onboarding local (`./init-local-development.sh`, IntelliJ IDEA Java 25, VS Code Go/Python, Swagger UI e gRPC Reflection), esteira Gitflow/CI/CD e o **Centro Unico de Custos Cloud (USD + Estimativa BRL)**.
+
+    [Dev Local &amp; IDEs ->](05-visao-operacoes/desenvolvimento-local-e-ides.md) / [Gitflow &amp; CI/CD ->](05-visao-operacoes/gitflow-cicd-e-qualidade.md) / [FinOps &amp; Custos Cloud ->](05-visao-operacoes/finops-e-custos-cloud.md)
+
+-   **Estagio do Projeto &amp; Governanca de Moedas**
+
+    ---
+
+    - **Visoes 1, 2 e 3:** 100% em Real Brasileiro (`R$` / `BRL`).
+    - **Visao 4:** Arquitetura pura, livre de precos dispersos.
+    - **Visao 5 (FinOps):** Centro unico de custos cloud em **USD (`US$`) + Estimativa em BRL (`R$`)**.
+
+    [Consultar Centro FinOps ->](05-visao-operacoes/finops-e-custos-cloud.md)
+
+</div>
+
+---
+
+## 3. Governanca de Engenharia -- Fluxo Gitflow Atlassian (`Sorobanerp`)
+
+Todos os 15 repositorios operam com Branch Protection ativa em `main` e `develop`, validacao automatica de Conventional Commits e bloqueio de origem de branch (`Gitflow Branch Source Guard`).
 
 ```mermaid
 gitGraph
@@ -79,81 +142,3 @@ gitGraph
    checkout develop
    merge hotfix/rls
 ```
-
----
-
-## 3. Navegacao Institucional pelos 6 Pilares
-
-<div class="grid cards pillars-3" markdown>
-
--   **1. Produto & Regras de Negocio**
-
-    ---
-
-    Regras contabeis imutaveis (`RN01` Competencia vs. Caixa, `RN02` Limite != Orcamento, `RN03` Estorno na Categoria Original), Taxonomia de 2 Niveis e meta `< 5%` em Nao Categorizado.
-
-    [Acessar PRD Core Banking V3 ->](product/prd-core-banking.md)
-
--   **2. IDS Design System (PFM Pulse)**
-
-    ---
-
-    Paleta institucional (`#8CBA51`, `#DEFF8B` com texto `#141D14`, `#FBCEB5` com texto `#3D1E10`, `#FF5D6C`), tipografia `Plus Jakarta Sans` + `JetBrains Mono` e tokens Web/Android.
-
-    [Acessar IDS PFM Pulse ->](design/ids-pfm-pulse.md)
-
--   **3. Arquitetura C4 & ADRs (001-010)**
-
-    ---
-
-    Diagramas C4 (Contexto, Conteineres e Componentes), 10 ADRs consolidados e fluxos de sequencia ponta a ponta entre BFF Go, Core Ledger Java 25, Forecast Go e AI Worker Python.
-
-    [Ver ADRs 001-010 ->](architecture/adrs.md) / [Modelo C4 ->](architecture/c4-model.md)
-
--   **4. Seguranca LGPD & FinOps**
-
-    ---
-
-    Envelope Encryption AWS KMS (`alias/pfm-master-key`), PostgreSQL 16 `FORCE ROW LEVEL SECURITY`, OTel Collector Tail-Based Sampling e automacao `pfm-finops-manager`.
-
-    [Conformidade LGPD ->](security/lgpd-cryptography-compliance.md) / [SRE & FinOps ->](operations/sre-finops.md)
-
--   **5. Operacoes, Gitflow & Dev Local**
-
-    ---
-
-    Inicializacao local em comando unico (`./init-local-development.sh`), debug no IntelliJ IDEA e VS Code, Swagger UI OpenAPI 3.1, `grpcurl` e governanca Gitflow Atlassian.
-
-    [Guia de Execucao Local ->](operations/local-development-guide.md) / [Gitflow ->](operations/gitflow-workflow.md)
-
--   **6. Qualidade, Backlog & Testes BDD**
-
-    ---
-
-    Epicos Scrum, User Stories (`US-01` a `US-13`), cenarios BDD Gherkin (`Dado / Quando / Entao`), relatorios de validacao E2E e roteiro de demonstracao executiva.
-
-    [Backlog & BDD Gherkin ->](product/backlog-bdd.md) / [Validacao E2E ->](audit/RELATORIO_VALIDACAO_E2E.md)
-
-</div>
-
----
-
-## 4. Catalogo Oficial dos 15 Repositorios (`Sorobanerp`)
-
-| # | Repositorio | Stack Principal | Responsabilidade |
-| :-: | :--- | :--- | :--- |
-| 01 | `pfm-docs` | MkDocs Material 3 | Portal Institucional Pulse Docs (Produto, IDS, Arquitetura, LGPD, SRE e DX) |
-| 02 | `pfm-contracts` | Protobuf v1 + OpenAPI 3.1 | Contratos gRPC (`CoreLedger`, `Forecast`, `Profile`, `Admin`) e `openapi.yaml` |
-| 03 | `pfm-shared-infra` | OpenTofu + Docker Compose | VPC 2 AZs (0 NAT), Cluster ECS `pfm-ecs-pilot`, Cloud Map `pfm.internal`, RDS, KMS, S3 |
-| 04 | `pfm-finops-manager-infra` | Python 3.12 Arm64 + OpenTofu | Lambda `pfm-finops-manager` (`stop`, `start`, `audit` e `cost_guardrails`) |
-| 05 | `pfm-core-ledger-java` | Java 25 LTS + Spring Boot 3.5 | Ledger Partidas Dobradas, Parcelamentos, RLS PostgreSQL 16 e gRPC `:9090` |
-| 06 | `pfm-core-ledger-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64, Service Connect e IAM Least Privilege do Core Ledger |
-| 07 | `pfm-ingestion-bff-go` | Go 1.27 + HTTP/2 & Swagger | Upload PDF em RAM, Scraper NFC-e, Bridge gRPC e Swagger UI `:8080` |
-| 08 | `pfm-ingestion-bff-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64, Service Connect e IAM S3/KMS do BFF |
-| 09 | `pfm-forecast-engine-go` | Go 1.27 + `shopspring/decimal` | Projecao Run-Rate (30/60/90d) e Simulador SAC/Price/Consorcio gRPC `:9091` |
-| 10 | `pfm-forecast-engine-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64, Service Connect e IAM do Forecast Engine |
-| 11 | `pfm-ai-worker-python` | Python 3.12 + Pydantic v2 | Categorizacao em 3 Camadas (Regras Locais -> pgvector -> Gemini 2.5 Flash) |
-| 12 | `pfm-ai-worker-infra` | OpenTofu (AWS Lambda Arm64) | Funcao Serverless `pfm-ai-worker-python-prod`, SQS DLQ e KMS Secrets |
-| 13 | `pfm-web-nextjs` | Next.js 15 + React 19 | Experiencia Web Full-Viewport com Design System IDS PFM Pulse |
-| 14 | `pfm-web-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64 e infraestrutura dedicada do Frontend Web |
-| 15 | `pfm-mobile-android` | Kotlin 2.1 + Jetpack Compose | Superapp Android Material 3 com Scanner NFC-e e Tokens IDS PFM Pulse |
