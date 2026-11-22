@@ -4,6 +4,14 @@ Todas as alteracoes notaveis neste repositorio sao documentadas neste arquivo se
 
 ---
 
+## [3.2.0] - 2026-11-21
+
+### Added
+- Reestruturacao do catalogo e navegacao do portal Pulse Docs em **5 Visoes Executivas por Audiencia** (`01-visao-negocio`, `02-visao-produto`, `03-visao-usuario`, `04-visao-arquitetura`, `05-visao-operacoes`).
+- Governanca estrita de segregacao monetaria na Skill Editorial (`.agent/skills/pulse-docs-editorial-standard/SKILL.md`): `BRL (R$)` exclusivo nas Visoes 1, 2 e 3; zero billing disperso na Visao 4; e Centro Unico de Custos Cloud (`USD` + `Estimativa BRL @ R$ 5,80`) em `05-visao-operacoes/finops-e-custos-cloud.md`.
+
+---
+
 ## [3.1.0] - 2026-11-21
 
 ### Added
