@@ -1,47 +1,35 @@
-# Guia de Contribuição & Governança Gitflow — `pfm-docs`
+# Guia de Contribuicao, Governanca Gitflow e Padrao Editorial -- `pfm-docs`
 
-Este repositório faz parte da plataforma **PFM Core Banking** (`Sorobanerp`) e segue estritamente os padrões de engenharia descritos em [pfm-docs](https://sorobanerp.github.io/pfm-docs/).
+Este repositorio faz parte da plataforma **PFM Core Banking** (`Sorobanerp`) e segue estritamente as regras da **Skill de Governanca Editorial** em [.agent/skills/pulse-docs-editorial-standard/SKILL.md](.agent/skills/pulse-docs-editorial-standard/SKILL.md).
 
 ---
 
-## 1. Fluxo Gitflow Obrigatório
+## 1. Padrao Editorial Obrigatorio (ASCII-Pure & Material Design 3)
+
+Toda criacao ou edicao em `docs/**/*.md` e `mkdocs.yml` deve respeitar:
+
+1. **Padronizacao Universal ASCII (Sem Acentos e Sem Caracteres Especiais):**
+   - Utilizar apenas caracteres ASCII (`ord(c) <= 127`).
+   - Substituir simbolos especiais: `->`, `!=`, `>=`, `<=`, `~`, `-`, `--`, `"` e `'`.
+2. **Integridade de Tabelas e Quebras de Linha:**
+   - Proibido inserir `<br>` dentro de celulas de tabelas Markdown.
+   - Manter 1 linha em branco antes e depois de listas, tabelas, blocos de codigo e admonitions.
+3. **Componentes Nativos MkDocs Material Design 3:**
+   - Utilizar `<div class="grid cards" markdown>` para KPIs e cards de navegacao.
+
+---
+
+## 2. Fluxo Gitflow Obrigatorio
 
 ```text
-feat/* ou fix/* ──(PR + CI/SAST)──> develop ──(PR)──> release/vX.Y.Z ──(PR + GMUD)──> main (Tag vX.Y.Z)
+docs/* ou feat/* --(PR + CI)--> develop --(PR)--> release/vX.Y.Z --(PR + GMUD)--> main (Tag vX.Y.Z)
 ```
-
-- **`develop`**: Branch de integração contínua. Todo desenvolvimento parte de `develop` e retorna via Pull Request.
-- **`release/vX.Y.Z`**: Branch de estabilização, atualização de `CHANGELOG.md` e preparação da GMUD.
-- **`main`**: Branch de produção estrita. **Commits diretos são proibidos.**
 
 ---
 
-## 2. Padrão de Commits (Conventional Commits)
+## 3. Quality Gates Locais Antes do Pull Request
 
-Todos os títulos de Pull Request e mensagens de commit devem seguir o padrão **Conventional Commits**:
-
-```text
-<tipo>[escopo opcional]: <descrição curta no imperativo>
+```bash
+python3 scripts/sanitize_and_lint_docs.py
+NO_MKDOCS_2_WARNING=1 .venv/bin/mkdocs build --strict
 ```
-
-Tipos permitidos:
-- `feat:` Nova funcionalidade (`MINOR` no SemVer 2.0.0)
-- `fix:` Correção de bug (`PATCH` no SemVer 2.0.0)
-- `docs:` Alterações exclusivamente de documentação
-- `refactor:` Refatoração sem mudança de comportamento funcional
-- `perf:` Melhoria de performance ou eficiência FinOps
-- `test:` Adição ou correção de testes unitários/integração/BDD
-- `ci:` Alterações em pipelines GitHub Actions / Quality Gates
-- `chore:` Manutenção de dependências, build ou tooling
-- `revert:` Reversão de commit anterior
-
-Para mudanças incompatíveis (*Breaking Changes*), adicione `!` após o tipo/escopo (ex.: `feat(api)!: altera contrato gRPC`) — incrementa `MAJOR` no SemVer 2.0.0.
-
----
-
-## 3. Quality Gates (DoD V3)
-
-Antes de abrir Pull Request para `develop`:
-1. Zero segredos ou dados pessoais (PII) no código/logs (`gitleaks`).
-2. Análise estática limpa (`semgrep`, `trivy` para IaC/containers e **SonarCloud Portfolio Gate $\ge 95\%$**).
-3. Testes unitários e de integração (incluindo PostgreSQL RLS quando aplicável) 100% aprovados.

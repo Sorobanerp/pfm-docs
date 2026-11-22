@@ -29,6 +29,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      - name: Validar Padrao Editorial ASCII e Tabelas
+        run: python3 scripts/sanitize_and_lint_docs.py
       - name: Build estrito
         run: mkdocs build --clean --strict
       - uses: actions/configure-pages@v5

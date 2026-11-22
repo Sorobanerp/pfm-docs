@@ -1,40 +1,40 @@
-# Relatório Final de Homologação Local Ponta a Ponta (E2E — UC-01 a UC-06)
+# Relatorio Final de Homologacao Local Ponta a Ponta (E2E -- UC-01 a UC-06)
 
-**Data/Hora da Execução:** `2026-11-17T00:15:31Z` (`2026-11-16T21:15:31-03:00`)  
-**Suíte Executada:** [`pfm-shared-infra/e2e/e2e_validator.py`](file:///home/dantas/workspace/pfm-platform/pfm-shared-infra/e2e/e2e_validator.py)  
-**Gateway Edge Testado:** `http://localhost:18080` (`pfm-envoy-gateway` -> `pfm-ingestion-bff-go:18100`)  
+**Data/Hora da Execucao:** `2026-11-17T00:15:31Z` (`2026-11-16T21:15:31-03:00`)
+**Suite Executada:** [`pfm-shared-infra/e2e/e2e_validator.py`](file:///home/dantas/workspace/pfm-platform/pfm-shared-infra/e2e/e2e_validator.py)
+**Gateway Edge Testado:** `http://localhost:18080` (`pfm-envoy-gateway` -> `pfm-ingestion-bff-go:18100`)
 **Resultado Global:** **100% APROVADO (`all_passed: true`)**
 
-> **Nota de Conformidade 12-Factor:** As portas de host foram padronizadas nas faixas canônicas `1xxxx` (gateway `18080`, BFF `18100`, Forecast `18110`, Ledger `18200`, Web `18300`, AI `18400`) e `14xxx`/`15xxx`/`16xxx`/`19xxx` para isolamento total contra Portainer (`8000/9000/9443`). No container K8s permanecem as portas internas padrão.
+> **Nota de Conformidade 12-Factor:** As portas de host foram padronizadas nas faixas canonicas `1xxxx` (gateway `18080`, BFF `18100`, Forecast `18110`, Ledger `18200`, Web `18300`, AI `18400`) e `14xxx`/`15xxx`/`16xxx`/`19xxx` para isolamento total contra Portainer (`8000/9000/9443`). No container K8s permanecem as portas internas padrao.
 
 ---
 
 ## 1. Status da Infraestrutura Integrada (`pfm-shared-infra/local-cloud`)
 
-| Container / Serviço | Porta Host Canônica | Porta Interna K8s | Status | Papel Validado no Teste E2E |
+| Container / Servico | Porta Host Canonica | Porta Interna K8s | Status | Papel Validado no Teste E2E |
 |---|:---:|:---:|---|---|
 | `pfm-localstack` | `14566` | `4566` | `Up (healthy)` | Criptografia de envelope KMS e arquivamento no bucket `pfm-statements-encrypted-local`. |
-| `postgres-core-ledger` | `15432` | `5432` | `Up (healthy)` | Persistência ACID sob role `pfm_app_user` (`NOBYPASSRLS`) com RLS e 56 categorias oficiais. |
-| `postgres-ai-rules` | `15433` | `5432` | `Up (healthy)` | Persistência de regras aprendidas (`learned_merchant_rules`) sob role `pfm_ai_user` com RLS. |
-| `pfm-kafka` | `19092` | `9092` | `Up (healthy)` | Tópicos `statement.raw.extracted`, `tx.categorized`, `receipt.items.extracted`, `ledger.entry.committed`. |
-| `pfm-redis` (Valkey 8.0) | `16379` | `6379` | `Up (healthy)` | Cache Read-Model de projeção mensal Run-rate (`< 25ms`). |
+| `postgres-core-ledger` | `15432` | `5432` | `Up (healthy)` | Persistencia ACID sob role `pfm_app_user` (`NOBYPASSRLS`) com RLS e 56 categorias oficiais. |
+| `postgres-ai-rules` | `15433` | `5432` | `Up (healthy)` | Persistencia de regras aprendidas (`learned_merchant_rules`) sob role `pfm_ai_user` com RLS. |
+| `pfm-kafka` | `19092` | `9092` | `Up (healthy)` | Topicos `statement.raw.extracted`, `tx.categorized`, `receipt.items.extracted`, `ledger.entry.committed`. |
+| `pfm-redis` (Valkey 8.0) | `16379` | `6379` | `Up (healthy)` | Cache Read-Model de projecao mensal Run-rate (`< 25ms`). |
 | `pfm-envoy-gateway` | `18080` | `8080` | `Up (healthy)` | Roteamento North-South `/api/v1/*` -> `pfm-ingestion-bff-go:18100` com Correlation-ID. |
 
 ---
 
 ## 2. Resultados e Tempos de Resposta Medidos por Caso de Uso (`UC-01` a `UC-06`)
 
-| Caso de Uso | Descrição do Cenário BDD (Artefato 09 V2) | Evidências Técnicas Obtidas | Tempo Medido | Status |
+| Caso de Uso | Descricao do Cenario BDD (Artefato 09 V2) | Evidencias Tecnicas Obtidas | Tempo Medido | Status |
 |---|---|---|---|---|
-| **UC-01** | **Ingestão Fatura PDF + Checksum + Idempotência:** Fatura Itaú `R$ 6.311,14` (incluindo tarifa `Itaú Avisa R$ 7,99` e estorno `-R$ 168,94`), validação de Checksum `0.0000` e reimportação idempotente. | `DeclaredTotal = 6311.1400`, `ComputedTotal = 6311.1400`, `checksum_diff = 0.0000`, `persisted_rows_after_reimport = 4`, `duplicates_created = 0`. | **`68,17 ms`** (2 uploads + S3 + Kafka + 2 lotes SQL) | **APROVADO** |
-| **UC-02 & UC-03** | **NFC-e Offline -> SEFAZ -> Conciliação Cupom x Fatura + Inflação EAN:** Cupom de supermercado `R$ 313,01` conciliado com lançamento da fatura (`±3 dias` + mesmo `card_id` + valor exato) sem dobrar o gasto na categoria, e alerta de inflação `> 10%` por EAN. | Status unificado para `RECONCILED (CONCILED)`, saldo da categoria `ALIMENTACAO` mantido em `R$ 313,0100` (sem duplicidade) e inflação detectada no EAN `7891000100103` de `+20,0000%` (`R$ 20,00 -> R$ 24,00`). | **`15,23 ms`** | **APROVADO** |
-| **UC-04** | **Simulador Imutável SAC / Price / Consórcio:** Simulação de amortização extraordinária (`R$ 60.000,00` sobre saldo `R$ 300.000,00` em 120m) comparando redução de prazo vs. parcela com `shopspring/decimal`. | `installments_reduced_sac = 24` meses eliminados, `interest_savings_amount = R$ 25.200,0000`, zero mutação do contrato original. | **`1,91 ms`** | **APROVADO** |
-| **UC-05** | **Pipeline IA 3 Camadas + Inbox de Revisão:** Normalização de `POSTO FREI DAMIAOACUBRA`, fallback do Circuit Breaker Gemini e aprendizado retroativo via Inbox em `pfm_ai_rules:5433`. | Estabelecimento limpo `POSTO FREI DAMIAO`, cidade `Acu`, categoria `VAR_MOBILITY_FUEL` (`TRANSPORTE`/`COMBUSTIVEL_ETANOL_GASOLINA`); fallback CB `SYS_UNCLASSIFIED`; reclassificação retroativa `SUPERMERCADO_MERCEARIA`. | **`38,84 ms`** | **APROVADO** |
-| **UC-06** | **Run-Rate Preditivo `< 25ms` + RLS Multitenant:** Atualização do Read-Model no Valkey/Redis, alerta `Limite != Orçamento` e teste de intrusão cruzada entre `Tenant_A` e `Tenant_B`. | Latência Redis `0,84 ms` (SLO `< 25ms`), semáforo `RED (Limite != Orçamento)`, `cross_tenant_leaked_rows_core_ledger = 0`, `cross_tenant_leaked_rows_ai_rules = 0`, `unbound_session_rows = 0`. | **`0,84 ms`** | **APROVADO** |
+| **UC-01** | **Ingestao Fatura PDF + Checksum + Idempotencia:** Fatura Itau `R$ 6.311,14` (incluindo tarifa `Itau Avisa R$ 7,99` e estorno `-R$ 168,94`), validacao de Checksum `0.0000` e reimportacao idempotente. | `DeclaredTotal = 6311.1400`, `ComputedTotal = 6311.1400`, `checksum_diff = 0.0000`, `persisted_rows_after_reimport = 4`, `duplicates_created = 0`. | **`68,17 ms`** (2 uploads + S3 + Kafka + 2 lotes SQL) | **APROVADO** |
+| **UC-02 & UC-03** | **NFC-e Offline -> SEFAZ -> Conciliacao Cupom x Fatura + Inflacao EAN:** Cupom de supermercado `R$ 313,01` conciliado com lancamento da fatura (`+/-3 dias` + mesmo `card_id` + valor exato) sem dobrar o gasto na categoria, e alerta de inflacao `> 10%` por EAN. | Status unificado para `RECONCILED (CONCILED)`, saldo da categoria `ALIMENTACAO` mantido em `R$ 313,0100` (sem duplicidade) e inflacao detectada no EAN `7891000100103` de `+20,0000%` (`R$ 20,00 -> R$ 24,00`). | **`15,23 ms`** | **APROVADO** |
+| **UC-04** | **Simulador Imutavel SAC / Price / Consorcio:** Simulacao de amortizacao extraordinaria (`R$ 60.000,00` sobre saldo `R$ 300.000,00` em 120m) comparando reducao de prazo vs. parcela com `shopspring/decimal`. | `installments_reduced_sac = 24` meses eliminados, `interest_savings_amount = R$ 25.200,0000`, zero mutacao do contrato original. | **`1,91 ms`** | **APROVADO** |
+| **UC-05** | **Pipeline IA 3 Camadas + Inbox de Revisao:** Normalizacao de `POSTO FREI DAMIAOACUBRA`, fallback do Circuit Breaker Gemini e aprendizado retroativo via Inbox em `pfm_ai_rules:5433`. | Estabelecimento limpo `POSTO FREI DAMIAO`, cidade `Acu`, categoria `VAR_MOBILITY_FUEL` (`TRANSPORTE`/`COMBUSTIVEL_ETANOL_GASOLINA`); fallback CB `SYS_UNCLASSIFIED`; reclassificacao retroativa `SUPERMERCADO_MERCEARIA`. | **`38,84 ms`** | **APROVADO** |
+| **UC-06** | **Run-Rate Preditivo `< 25ms` + RLS Multitenant:** Atualizacao do Read-Model no Valkey/Redis, alerta `Limite != Orcamento` e teste de intrusao cruzada entre `Tenant_A` e `Tenant_B`. | Latencia Redis `0,84 ms` (SLO `< 25ms`), semaforo `RED (Limite != Orcamento)`, `cross_tenant_leaked_rows_core_ledger = 0`, `cross_tenant_leaked_rows_ai_rules = 0`, `unbound_session_rows = 0`. | **`0,84 ms`** | **APROVADO** |
 
 ---
 
-## 3. Saída JSON Oficial do Validador E2E (`e2e_validator.py`)
+## 3. Saida JSON Oficial do Validador E2E (`e2e_validator.py`)
 
 ```json
 {
@@ -81,7 +81,7 @@
       "use_case": "UC-06",
       "status": "APROVADO",
       "redis_update_latency_ms": 0.84,
-      "traffic_light": "RED (Limite != Orçamento)",
+      "traffic_light": "RED (Limite != Orcamento)",
       "cross_tenant_leaked_rows_core_ledger": 0,
       "cross_tenant_leaked_rows_ai_rules": 0,
       "unbound_session_rows": 0
