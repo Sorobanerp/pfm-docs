@@ -105,3 +105,33 @@ curl -s http://localhost:8080/api/v1/transactions \
 docker exec -i postgres-core-ledger psql -U pfm_app_user -d pfm_core_ledger -c \
   "SELECT COUNT(*) AS visible_rows_without_tenant_context FROM ledger_entries;"
 ```
+
+---
+
+## 5. Suite Oficial de Homologacao Local E2E (`validation-suite/`)
+
+Para validar **100% das 8 Jornadas do Produto (Happy Path + Sad Path)** contra os 4 servicos locais antes de qualquer deploy em nuvem, o repositorio `pfm-ingestion-bff-go` disponibiliza a pasta `validation-suite/`:
+
+- **`pfm-ingestion-bff-go/validation-suite/journey-complete.http`**: Colecao interativa REST Client (VS Code / IntelliJ HTTP Client / Insomnia / Postman) com variaveis encadeadas (`@baseUrl`, `@tenantA`, `@tenantB`, `@ownerA`, `@viewerA`, `@platformAdmin`).
+- **`pfm-ingestion-bff-go/validation-suite/run-local-e2e-validation.sh`**: Suite automatizada executavel (`chmod +x`) que valida 43 assercoes HTTP REST, gRPC (`:9090` e `:9091`) e PostgreSQL 16 RLS (`:5432`) em menos de 3 segundos.
+
+### 5.1. Como Executar a Homologacao Local E2E
+
+```bash
+cd /home/dantas/workspace/pfm-platform/pfm-ingestion-bff-go
+./validation-suite/run-local-e2e-validation.sh
+```
+
+### 5.2. Matriz das 8 Jornadas Homologadas (Happy Path + Sad Path)
+
+| Jornada | Escopo Funcional (100% BRL `R$`) | Cenarios Happy Path | Cenarios Sad Path (Seguranca & Dominio) |
+| :--- | :--- | :--- | :--- |
+| **Jornada 1** | Autenticacao JWT Local, Onboarding de Tenant e Isolamento RLS | Emissao de JWT para `OWNER` (Tenants A e B), `VIEWER` e `PLATFORM_ADMIN` (`200 OK`) | Sem `X-Tenant-ID`/JWT (`401`), UUID malformado (`401`), Cross-Tenant Read (`404` / `0 rows` no PostgreSQL 16 RLS) |
+| **Jornada 2** | Gestao de Cartoes de Credito e Lancamentos (CRUD + `RN02` / `RN03`) | Cartao final `5285` (`R$ 15.000,00`), compra a vista (`R$ 245,90`), parcelado `10x` (`R$ 4.500,00` `01/10..10/10`), `PATCH` categoria e estorno `RN03` (`201 Created`) | Valor negativo `-10.00` (`400`), valor zero `0.00` (`400`), data invalida (`400`), parcelas `0` (`400`), `VIEWER` tentando deletar (`403 Forbidden`) |
+| **Jornada 3** | Ingestao de Fatura PDF em RAM (Zero-Persistence) e Checksum (`RN04`) | Upload PDF em RAM com soma exata `R$ 750,90` e `checksum_diff: 0.00` (`200 OK`) | Divergencia de soma `R$ 700,00 != R$ 750,90` (`409 Conflict`), arquivo `.exe` / `MZ` (`415 Unsupported Media Type`), PDF vazio (`400 Bad Request`) |
+| **Jornada 4** | Ingestao de Cupom Fiscal SEFAZ (NFC-e) e Inflacao Pessoal por SKU | Ingestao de 2 notas fiscais com SKU `EAN 7891234567890` (`R$ 39,90` -> `R$ 47,90`) detectando `+20.05%` de inflacao pessoal (`200 OK`) | Reenvio da mesma chave de acesso NFC-e de 44 digitos (`409 Conflict` idempotente) |
+| **Jornada 5** | Pipeline Kafka, Categorizacao IA (3 Camadas) e Inbox Zero (`< 5%`) | Consulta da fila Inbox Zero (`2.40% < 5.00%`) e confirmacao com `learn_rule: true` (`200 OK`) | Evento malformado roteado para `tx.dlq` (`202 Accepted`) mantendo `pfm-ai-worker-python` `UP` |
+| **Jornada 6** | Motor de Previsibilidade ("Livre para Gastar") e Simulador SAC/PRICE | "Livre para Gastar" (`TODAY`/`WEEK`/`MONTH`) e amortizacao SAC (`R$ 320.000,00`, extra `R$ 50.000,00`) via HTTP e gRPC `:9091` (`200 OK` / `gRPC OK`) | Amortizacao extra `R$ 400.000,00 > R$ 320.000,00` (`400 Bad Request` / `InvalidArgument`) e prazo `0` (`400 Bad Request`) |
+| **Jornada 7** | Governanca Familiar, Teto de Gastos e Portabilidade LGPD | Teto mensal `R$ 1.500,00` (alerta `80%`), convite `MEMBER` (`201 Created`), exportacao LGPD (`202 Accepted`) e gRPC Core Ledger `:9090` (`gRPC OK`) | Bloqueio de mutacao para perfil `VIEWER` (`403 Forbidden`) |
+| **Jornada 8** | SaaS Admin Backoffice e Zero-Trust Privacy (Blindagem LGPD) | `PLATFORM_ADMIN` lista metadados comerciais de tenants (`200 OK`) | `PLATFORM_ADMIN` bloqueado ao tentar ler transacoes financeiras (`403 Forbidden`) ou perfil familiar privado (`403 Forbidden`) |
+
