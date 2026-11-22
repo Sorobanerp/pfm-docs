@@ -1,71 +1,71 @@
 # Modelo C4 & Topologia Oficial Multi-Repo (V3)
 
-Esta seção apresenta a arquitetura da plataforma **PFM Core Banking (Versão 3.0 — Production-Ready FinOps & Multi-Cloud)** através do **Modelo C4 (Context, Containers, Components)**, a topologia oficial dos repositórios do ecossistema e a trilha evolutiva de computação **Serverless/Containers Enxutos $\rightarrow$ Hiperescala Kubernetes**.
+Esta secao apresenta a arquitetura da plataforma **PFM Core Banking (Versao 3.0 -- Production-Ready FinOps & Multi-Cloud)** atraves do **Modelo C4 (Context, Containers, Components)**, a topologia oficial dos repositorios do ecossistema e a trilha evolutiva de computacao **Serverless/Containers Enxutos $\rightarrow$ Hiperescala Kubernetes**.
 
 ---
 
-## 1. C4 Nível 1 — Diagrama de Contexto do Sistema
+## 1. C4 Nivel 1 -- Diagrama de Contexto do Sistema
 
-O diagrama de contexto ilustra como titulares, membros familiares e administradores SaaS interagem com a plataforma PFM Core Banking e como o sistema se integra de forma resiliente aos provedores externos (SEFAZ Estaduais, Provedores de IA/LLM, Emissores Bancários, Datadog e SonarCloud).
+O diagrama de contexto ilustra como titulares, membros familiares e administradores SaaS interagem com a plataforma PFM Core Banking e como o sistema se integra de forma resiliente aos provedores externos (SEFAZ Estaduais, Provedores de IA/LLM, Emissores Bancarios, Datadog e SonarCloud).
 
 ```mermaid
 flowchart TB
-    USER["👤 Titular & Família (OWNER / MEMBER / VIEWER)<br/>[Person]<br/>Gerencia finanças, cartões, orçamentos,<br/>faturas PDF, notas NFC-e e perfil LGPD."]
-    ADMIN["🛠️ Administrador SaaS (PLATFORM_ADMIN)<br/>[Person]<br/>Gere planos, assinaturas, quotas e métricas<br/>globais sem acesso a dados financeiros privados."]
+    USER[" Titular & Familia (OWNER / MEMBER / VIEWER)<br/>[Person]<br/>Gerencia financas, cartoes, orcamentos,<br/>faturas PDF, notas NFC-e e perfil LGPD."]
+    ADMIN[" Administrador SaaS (PLATFORM_ADMIN)<br/>[Person]<br/>Gere planos, assinaturas, quotas e metricas<br/>globais sem acesso a dados financeiros privados."]
 
     subgraph Enterprise["Boundary: Ecossistema PFM Core Banking (V3)"]
-        PFM["🏦 Plataforma PFM Core Banking<br/>[Software System]<br/>Core contábil multitenant (RLS + KMS),<br/>ingestão PDF em RAM, NFC-e offline-first,<br/>Worker IA Serverless (Lambda Arm64) e Audit Log imutável."]
+        PFM[" Plataforma PFM Core Banking<br/>[Software System]<br/>Core contabil multitenant (RLS + KMS),<br/>ingestao PDF em RAM, NFC-e offline-first,<br/>Worker IA Serverless (Lambda Arm64) e Audit Log imutavel."]
     end
 
-    SEFAZ["🏛️ Portais SEFAZ Estaduais<br/>[External System]<br/>Consulta pública de cupons fiscais<br/>eletrônicos (NFC-e / SAT) via Chave/QR Code."]
-    LLM["🧠 Provedor Cloud LLM (Bedrock / Vertex / OpenAI)<br/>[External System]<br/>Inferência semântica de fallback (Camada 3)<br/>para descrições financeiras anonimizadas."]
-    OPENFIN["💳 Instituições Financeiras / OFX & PDF<br/>[External System]<br/>Emissores de cartões e extratos bancários."]
-    OBS["📊 Datadog Unified & SonarCloud Portfolio<br/>[External Systems]<br/>APM/Logs/Métricas via OTel Tail Sampling<br/>e Quality Gate SAST/Cobertura >= 95%."]
+    SEFAZ[" Portais SEFAZ Estaduais<br/>[External System]<br/>Consulta publica de cupons fiscais<br/>eletronicos (NFC-e / SAT) via Chave/QR Code."]
+    LLM[" Provedor Cloud LLM (Bedrock / Vertex / OpenAI)<br/>[External System]<br/>Inferencia semantica de fallback (Camada 3)<br/>para descricoes financeiras anonimizadas."]
+    OPENFIN[" Instituicoes Financeiras / OFX & PDF<br/>[External System]<br/>Emissores de cartoes e extratos bancarios."]
+    OBS[" Datadog Unified & SonarCloud Portfolio<br/>[External Systems]<br/>APM/Logs/Metricas via OTel Tail Sampling<br/>e Quality Gate SAST/Cobertura >= 95%."]
 
-    USER -->|"HTTPS / HTTP/3<br/>Upload PDF, Scan QR NFC-e,<br/>Orçamento, Conciliação & LGPD"| PFM
-    ADMIN -->|"HTTPS / OIDC<br/>Gestão SaaS Admin (Zero-PII)"| PFM
+    USER -->|"HTTPS / HTTP/3<br/>Upload PDF, Scan QR NFC-e,<br/>Orcamento, Conciliacao & LGPD"| PFM
+    ADMIN -->|"HTTPS / OIDC<br/>Gestao SaaS Admin (Zero-PII)"| PFM
     PFM -->|"HTTPS Scraping Resiliente<br/>(Circuit Breaker + Retries)"| SEFAZ
     PFM -->|"HTTPS Anonimizado<br/>(Zero PII)"| LLM
-    USER -.->|"Obtém Fatura PDF / Extrato"| OPENFIN
+    USER -.->|"Obtem Fatura PDF / Extrato"| OPENFIN
     PFM -->|"OTLP Tail-Sampled & SAST Reports"| OBS
 ```
 
 ---
 
-## 2. C4 Nível 2 — Diagrama de Contêineres (Topologia V3 FinOps & Serverless)
+## 2. C4 Nivel 2 -- Diagrama de Conteineres (Topologia V3 FinOps & Serverless)
 
-O Nível 2 detalha os contêineres e funções serverless da arquitetura V3, destacando o uso de **AWS ECS Fargate Spot (Arm64)** com **Service Connect (`pfm.internal`)**, o worker de IA como **AWS Lambda Arm64 Event-Driven (ADR-009)** sem conexão direta ao PostgreSQL, mensageria/cache em **Upstash Serverless** e coleta unificada via **OpenTelemetry Collector (ADR-010)**.
+O Nivel 2 detalha os conteineres e funcoes serverless da arquitetura V3, destacando o uso de **AWS ECS Fargate Spot (Arm64)** com **Service Connect (`pfm.internal`)**, o worker de IA como **AWS Lambda Arm64 Event-Driven (ADR-009)** sem conexao direta ao PostgreSQL, mensageria/cache em **Upstash Serverless** e coleta unificada via **OpenTelemetry Collector (ADR-010)**.
 
 ```mermaid
 flowchart TB
     subgraph Clients["Canais de Entrada (Frontends)"]
-        WEB["💻 pfm-web-nextjs<br/>[Container: Next.js 15 / TypeScript]<br/>Portal Executivo, SaaS Admin (US-12)<br/>e Central Perfil/Família (US-13)."]
-        MOB["📱 pfm-mobile-android<br/>[App: Kotlin / Jetpack Compose]<br/>App Offline-First, scanner QR NFC-e<br/>e banco local SQLCipher."]
+        WEB[" pfm-web-nextjs<br/>[Container: Next.js 15 / TypeScript]<br/>Portal Executivo, SaaS Admin (US-12)<br/>e Central Perfil/Familia (US-13)."]
+        MOB[" pfm-mobile-android<br/>[App: Kotlin / Jetpack Compose]<br/>App Offline-First, scanner QR NFC-e<br/>e banco local SQLCipher."]
     end
 
     subgraph EdgeLayer["Borda, Identidade & Roteamento"]
-        GW["🛡️ Edge ALB / Envoy Gateway<br/>[Container / Managed L7]<br/>Terminação TLS 1.3 / HTTP/3, Rate Limiting,<br/>Validação JWT OIDC e Roteamento."]
+        GW[" Edge ALB / Envoy Gateway<br/>[Container / Managed L7]<br/>Terminacao TLS 1.3 / HTTP/3, Rate Limiting,<br/>Validacao JWT OIDC e Roteamento."]
     end
 
     subgraph EcsPilot["Compute Enxuto (ECS Fargate Spot Arm64 / ACA / Cloud Run) + Service Connect (pfm.internal)"]
-        BFF["📄 pfm-ingestion-bff-go<br/>[Container: Golang 1.24]<br/>BFF REST/gRPC, PDF Parser 100% em RAM<br/>(Zero-Disk) e Scraper SEFAZ NFC-e."]
-        LEDGER["📒 pfm-core-ledger-java<br/>[Container: Java 25 LTS / Spring Boot 3.4]<br/>Partidas dobradas, Competência/Caixa (RN01),<br/>Cartões/Estornos, Conciliação e Audit Log."]
-        FORECAST["📈 pfm-forecast-engine-go<br/>[Container: Golang 1.24]<br/>Motor de Projeção Preditiva (30/60/90d)<br/>e Alertas de Limiar de Orçamento."]
+        BFF[" pfm-ingestion-bff-go<br/>[Container: Golang 1.24]<br/>BFF REST/gRPC, PDF Parser 100% em RAM<br/>(Zero-Disk) e Scraper SEFAZ NFC-e."]
+        LEDGER[" pfm-core-ledger-java<br/>[Container: Java 25 LTS / Spring Boot 3.4]<br/>Partidas dobradas, Competencia/Caixa (RN01),<br/>Cartoes/Estornos, Conciliacao e Audit Log."]
+        FORECAST[" pfm-forecast-engine-go<br/>[Container: Golang 1.24]<br/>Motor de Projecao Preditiva (30/60/90d)<br/>e Alertas de Limiar de Orcamento."]
     end
 
-    subgraph ServerlessAI["Compute IA Event-Driven (ADR-009 — Custo $0 Ocioso)"]
-        AI["🧠 pfm-ai-worker-python<br/>[AWS Lambda Arm64 / Python 3.12]<br/>Pipeline IA 3 Camadas (L1/L2 ONNX/L3 LLM)<br/>ISOLADO: Sem conexão direta ao PostgreSQL."]
+    subgraph ServerlessAI["Compute IA Event-Driven (ADR-009 -- Custo $0 Ocioso)"]
+        AI[" pfm-ai-worker-python<br/>[AWS Lambda Arm64 / Python 3.12]<br/>Pipeline IA 3 Camadas (L1/L2 ONNX/L3 LLM)<br/>ISOLADO: Sem conexao direta ao PostgreSQL."]
     end
 
-    subgraph DataAndMessaging["Persistência Isolada & Backbone Serverless (Upstash + RDS)"]
-        PG[("🐘 Amazon RDS PostgreSQL 16 (RLS + KMS)<br/>[Database: db.t4g.micro -> Aurora HA]<br/>Isolamento Row-Level Security por tenant_id,<br/>Outbox e tabela audit_log append-only.")]
-        REDIS[("⚡ Upstash Redis / Valkey Serverless<br/>[In-Memory Serverless Cache]<br/>Chaves Idempotência (72h),<br/>Cache L1 Categorização e Rate Limit.")]
-        KAFKA[["📨 Upstash Kafka Serverless<br/>[Event Streaming Backbone]<br/>Tópicos particionados por tenant_id<br/>+ Dead Letter Queues (DLQ Cifradas KMS)."]]
+    subgraph DataAndMessaging["Persistencia Isolada & Backbone Serverless (Upstash + RDS)"]
+        PG[(" Amazon RDS PostgreSQL 16 (RLS + KMS)<br/>[Database: db.t4g.micro -> Aurora HA]<br/>Isolamento Row-Level Security por tenant_id,<br/>Outbox e tabela audit_log append-only.")]
+        REDIS[(" Upstash Redis / Valkey Serverless<br/>[In-Memory Serverless Cache]<br/>Chaves Idempotencia (72h),<br/>Cache L1 Categorizacao e Rate Limit.")]
+        KAFKA[[" Upstash Kafka Serverless<br/>[Event Streaming Backbone]<br/>Topicos particionados por tenant_id<br/>+ Dead Letter Queues (DLQ Cifradas KMS)."]]
     end
 
     subgraph Observability["Observabilidade Unificada (ADR-010)"]
-        OTEL["📡 OpenTelemetry Collector<br/>[Redaction + Tail-Based Sampling]<br/>100% Erros & Latência > 500ms | 5-10% Sucessos"]
-        DD["📊 Datadog Unified Dashboard<br/>[Multi-Cloud APM & Jornadas UC-01..08]"]
+        OTEL[" OpenTelemetry Collector<br/>[Redaction + Tail-Based Sampling]<br/>100% Erros & Latencia > 500ms | 5-10% Sucessos"]
+        DD[" Datadog Unified Dashboard<br/>[Multi-Cloud APM & Jornadas UC-01..08]"]
     end
 
     WEB -->|"REST HTTP/3 (JSON)"| GW
@@ -98,36 +98,36 @@ flowchart TB
 
 ---
 
-## 3. C4 Nível 3 — Diagrama de Componentes Hexagonais (`pfm-core-ledger-java`)
+## 3. C4 Nivel 3 -- Diagrama de Componentes Hexagonais (`pfm-core-ledger-java`)
 
-O Nível 3 demonstra a estrutura interna padronizada utilizando **Arquitetura Hexagonal (Ports & Adapters)**, garantindo que o domínio contábil permaneça 100% livre de frameworks e SDKs de nuvem, enquanto os *Outbound Adapters* aplicam RLS, Envelope Encryption KMS e gravação imutável no `audit_log`.
+O Nivel 3 demonstra a estrutura interna padronizada utilizando **Arquitetura Hexagonal (Ports & Adapters)**, garantindo que o dominio contabil permaneca 100% livre de frameworks e SDKs de nuvem, enquanto os *Outbound Adapters* aplicam RLS, Envelope Encryption KMS e gravacao imutavel no `audit_log`.
 
 ```mermaid
 flowchart TB
-    subgraph InboundAdapters["Adapters Layer — Inbound (Driving Adapters)"]
+    subgraph InboundAdapters["Adapters Layer -- Inbound (Driving Adapters)"]
         GRPC_IN["LedgerGrpcController<br/>[gRPC Inbound Adapter]<br/>Recebe comandos Protobuf v3 via Service Connect."]
         KAFKA_IN["TransactionEventConsumer<br/>[Kafka Inbound Adapter]<br/>Consome eventos de PDF/NFC-e e CategorizedEvent (Lambda IA)."]
     end
 
-    subgraph ApplicationLayer["Application Layer — Use Cases & Ports"]
+    subgraph ApplicationLayer["Application Layer -- Use Cases & Ports"]
         IN_PORT["&lt;&lt;Interface&gt;&gt;<br/>RecordTransactionUseCase<br/>[Inbound Port]"]
-        UC_IMPL["LedgerApplicationService<br/>[Use Case Orchestrator]<br/>Orquestra transação, idempotência e trilha de auditoria."]
+        UC_IMPL["LedgerApplicationService<br/>[Use Case Orchestrator]<br/>Orquestra transacao, idempotencia e trilha de auditoria."]
         OUT_REPO["&lt;&lt;Interface&gt;&gt;<br/>LedgerRepositoryPort<br/>[Outbound Port]"]
         OUT_AUDIT["&lt;&lt;Interface&gt;&gt;<br/>ImmutableAuditLogPort<br/>[Outbound Port]"]
         OUT_OUTBOX["&lt;&lt;Interface&gt;&gt;<br/>OutboxEventPublisherPort<br/>[Outbound Port]"]
         OUT_IDEMP["&lt;&lt;Interface&gt;&gt;<br/>IdempotencyStorePort<br/>[Outbound Port]"]
     end
 
-    subgraph DomainCore["Domain Core — 100% Pure Java 25 (Zero Framework Dependencies)"]
-        AGG["LedgerEntryAggregate<br/>[Domain Aggregate]<br/>Invariantes contábeis, Competência vs. Caixa (RN01)."]
+    subgraph DomainCore["Domain Core -- 100% Pure Java 25 (Zero Framework Dependencies)"]
+        AGG["LedgerEntryAggregate<br/>[Domain Aggregate]<br/>Invariantes contabeis, Competencia vs. Caixa (RN01)."]
         VO_MONEY["MoneyValueObject<br/>[Value Object]<br/>BigDecimal NUMERIC(19,4) + ROUND_HALF_EVEN (RN06)."]
-        POL_REFUND["RefundAdjustmentPolicy<br/>[Domain Policy]<br/>Estorno parcial/total e vínculo original (RN03)."]
-        TAXONOMY["TwoLevelCategoryValidator<br/>[Domain Specification]<br/>Valida Taxonomia Oficial Nível 1 + Nível 2."]
+        POL_REFUND["RefundAdjustmentPolicy<br/>[Domain Policy]<br/>Estorno parcial/total e vinculo original (RN03)."]
+        TAXONOMY["TwoLevelCategoryValidator<br/>[Domain Specification]<br/>Valida Taxonomia Oficial Nivel 1 + Nivel 2."]
     end
 
-    subgraph OutboundAdapters["Adapters Layer — Outbound (Driven Adapters)"]
+    subgraph OutboundAdapters["Adapters Layer -- Outbound (Driven Adapters)"]
         PG_ADAPTER["PostgresRlsLedgerAdapter<br/>[PostgreSQL Outbound Adapter]<br/>SET LOCAL app.current_tenant_id, persiste Ledger + Outbox + audit_log."]
-        REDIS_ADAPTER["RedisIdempotencyAdapter<br/>[Upstash Redis Adapter]<br/>Lock distribuído e cache de resposta idempotente."]
+        REDIS_ADAPTER["RedisIdempotencyAdapter<br/>[Upstash Redis Adapter]<br/>Lock distribuido e cache de resposta idempotente."]
     end
 
     GRPC_IN --> IN_PORT
@@ -152,35 +152,35 @@ flowchart TB
 
 ---
 
-## 4. Tabela Oficial dos Repositórios da Plataforma
+## 4. Tabela Oficial dos Repositorios da Plataforma
 
-A governança de código da plataforma **PFM Core Banking** opera sob topologia Multi-Repo na organização GitHub [`Sorobanerp`](https://github.com/Sorobanerp), com mapeamento 1:1 entre serviços de aplicação e módulos dedicados de infraestrutura (`*-infra`):
+A governanca de codigo da plataforma **PFM Core Banking** opera sob topologia Multi-Repo na organizacao GitHub [`Sorobanerp`](https://github.com/Sorobanerp), com mapeamento 1:1 entre servicos de aplicacao e modulos dedicados de infraestrutura (`*-infra`):
 
-| # | Repositório | Categoria | Stack / Tecnologia Principal | Responsabilidade Arquitetural & Escopo |
+| # | Repositorio | Categoria | Stack / Tecnologia Principal | Responsabilidade Arquitetural & Escopo |
 | :-: | :--- | :--- | :--- | :--- |
-| **01** | `pfm-contracts` | Contratos & Schemas | OpenAPI 3.1, Protobuf v3, JSON Schema / Avro | Fonte única da verdade (*Single Source of Truth*) para APIs REST, gRPC (`TenantAdminService`, `UserProfileService`, `LedgerService`) e eventos Kafka. |
-| **02** | `pfm-core-ledger-java` | Core Banking | Java 25 LTS, Spring Boot 3.4, PostgreSQL RLS | Escrituração contábil ACID, Competência vs. Caixa (**RN01**), Parcelas/Estornos (**RN02/RN03/RN06**), Conciliação (**RN04**), SaaS Admin, LGPD e `audit_log` append-only. |
-| **03** | `pfm-ingestion-bff-go` | Ingestão & BFF | Golang 1.24+, HTTP/3, gRPC, `bytes.Reader` | API BFF, parsing de faturas PDF **100% em memória RAM** (**ADR-006**) e Scraper SEFAZ NFC-e resiliente. |
-| **04** | `pfm-forecast-engine-go` | Projeção & Alertas | Golang 1.24+, gRPC, Kafka | Motor preditivo de fluxo de caixa (30/60/90 dias), cálculo de *burn rate* de orçamento e disparo de alertas (80% / 100%). |
-| **05** | `pfm-ai-worker-python` | IA Serverless | Python 3.12+, AWS Lambda Arm64, ONNX, LLM | Pipeline de categorização em 3 camadas (L1 Redis $\rightarrow$ L2 ONNX $\rightarrow$ L3 LLM Anonimizado), **sem acesso direto ao PostgreSQL (ADR-009)**. |
-| **06** | `pfm-web-nextjs` | Frontend Web | Next.js 15, React 19, TypeScript, TailwindCSS | Portal Web "Organic Financial Pulse", dashboards Competência vs. Caixa, Painel SaaS Admin (`UC-07`) e Central Perfil/Família (`UC-08`). |
-| **07** | `pfm-mobile-android` | Frontend Mobile | Kotlin, Jetpack Compose, Room/SQLCipher, CameraX | App nativo **Offline-First** com leitor QR Code NFC-e instantâneo, cofre local cifrado e sincronização via WorkManager. |
+| **01** | `pfm-contracts` | Contratos & Schemas | OpenAPI 3.1, Protobuf v3, JSON Schema / Avro | Fonte unica da verdade (*Single Source of Truth*) para APIs REST, gRPC (`TenantAdminService`, `UserProfileService`, `LedgerService`) e eventos Kafka. |
+| **02** | `pfm-core-ledger-java` | Core Banking | Java 25 LTS, Spring Boot 3.4, PostgreSQL RLS | Escrituracao contabil ACID, Competencia vs. Caixa (**RN01**), Parcelas/Estornos (**RN02/RN03/RN06**), Conciliacao (**RN04**), SaaS Admin, LGPD e `audit_log` append-only. |
+| **03** | `pfm-ingestion-bff-go` | Ingestao & BFF | Golang 1.24+, HTTP/3, gRPC, `bytes.Reader` | API BFF, parsing de faturas PDF **100% em memoria RAM** (**ADR-006**) e Scraper SEFAZ NFC-e resiliente. |
+| **04** | `pfm-forecast-engine-go` | Projecao & Alertas | Golang 1.24+, gRPC, Kafka | Motor preditivo de fluxo de caixa (30/60/90 dias), calculo de *burn rate* de orcamento e disparo de alertas (80% / 100%). |
+| **05** | `pfm-ai-worker-python` | IA Serverless | Python 3.12+, AWS Lambda Arm64, ONNX, LLM | Pipeline de categorizacao em 3 camadas (L1 Redis $\rightarrow$ L2 ONNX $\rightarrow$ L3 LLM Anonimizado), **sem acesso direto ao PostgreSQL (ADR-009)**. |
+| **06** | `pfm-web-nextjs` | Frontend Web | Next.js 15, React 19, TypeScript, TailwindCSS | Portal Web "Organic Financial Pulse", dashboards Competencia vs. Caixa, Painel SaaS Admin (`UC-07`) e Central Perfil/Familia (`UC-08`). |
+| **07** | `pfm-mobile-android` | Frontend Mobile | Kotlin, Jetpack Compose, Room/SQLCipher, CameraX | App nativo **Offline-First** com leitor QR Code NFC-e instantaneo, cofre local cifrado e sincronizacao via WorkManager. |
 | **08** | `pfm-shared-infra` | Infra Compartilhada | OpenTofu, AWS ECS Fargate Spot, Service Connect, RDS, KMS | Landing Zone VPC, Cluster ECS `pfm-pilot-prod`, Cloud Map `pfm.internal`, RDS PostgreSQL, KMS, S3 criptografado, Secrets Upstash e trilha EKS condicional. |
 | **09** | `pfm-core-ledger-infra` | Infra Dedicada 1:1 | OpenTofu, ECS Service / Helm, Auto Scaling | Task Definition Arm64, Service Connect (`pfm-core-ledger-java.pfm.internal:18200`), IAM Least Privilege e Auto-Rollback S3. |
 | **10** | `pfm-ingestion-bff-infra` | Infra Dedicada 1:1 | OpenTofu, ECS Service / Helm, Auto Scaling | Task Definition Arm64, Service Connect (`pfm-ingestion-bff-go.pfm.internal:18080`), IAM KMS/S3 e Auto-Rollback S3. |
 | **11** | `pfm-forecast-engine-infra` | Infra Dedicada 1:1 | OpenTofu, ECS Service / Helm, Auto Scaling | Task Definition Arm64, Service Connect (`pfm-forecast-engine-go.pfm.internal:18110`) e Auto-Rollback S3. |
 | **12** | `pfm-ai-worker-infra` | Infra Dedicada 1:1 | OpenTofu, AWS Lambda Arm64 / ECS (`desired=0`) | Provisionamento Serverless Event-Driven (custo $0 ocioso) e triggers Kafka/SQS + DLQ cifrada. |
 | **13** | `pfm-web-infra` | Infra Dedicada 1:1 | OpenTofu, ECS Service / Helm, Auto Scaling | Task Definition Arm64, Service Connect (`pfm-web-nextjs.pfm.internal:3000`) e Auto-Rollback S3. |
-| **14** | `pfm-finops-manager-infra` | Governança FinOps | Python 3.12, AWS Lambda Arm64, EventBridge | Orquestração automática de `stop` (20h30 BRT), `start` (06h00 BRT), `audit` (run-rate USD) e *circuit-breaker* de orçamento. |
-| **15** | `pfm-docs` | Governança & Docs | MkDocs Material, Mermaid.js, GitHub Actions | Portal de **Docs-as-Code** V3 (Visão Executiva, ADRs V3, Modelo C4, Fluxos, PRD, Backlog BDD e SRE/FinOps). |
+| **14** | `pfm-finops-manager-infra` | Governanca FinOps | Python 3.12, AWS Lambda Arm64, EventBridge | Orquestracao automatica de `stop` (20h30 BRT), `start` (06h00 BRT), `audit` (run-rate USD) e *circuit-breaker* de orcamento. |
+| **15** | `pfm-docs` | Governanca & Docs | MkDocs Material, Mermaid.js, GitHub Actions | Portal de **Docs-as-Code** V3 (Visao Executiva, ADRs V3, Modelo C4, Fluxos, PRD, Backlog BDD e SRE/FinOps). |
 
 ---
 
 ## 5. Topologia de Portas: Ambiente Local (Host) vs. Cloud
 
-A plataforma adota o princípio **12-Factor App (Port Binding via Environment Variables)** para evitar colisões locais (ex.: Portainer na porta `8000`) e padronizar o roteamento em produção:
+A plataforma adota o principio **12-Factor App (Port Binding via Environment Variables)** para evitar colisoes locais (ex.: Portainer na porta `8000`) e padronizar o roteamento em producao:
 
-| Componente / Serviço | Host Local | Cloud (`pfm.internal` / K8s) | Protocolo | Variável de Ambiente (12-Factor) |
+| Componente / Servico | Host Local | Cloud (`pfm.internal` / K8s) | Protocolo | Variavel de Ambiente (12-Factor) |
 | :--- | :---: | :---: | :---: | :--- |
 | **`pfm-docs`** (MkDocs) | `18000` | `8000` | HTTP | `PORT=18000` (`Makefile`) |
 | **`pfm-web-nextjs`** | `18300` | `3000` | HTTP | `PORT=18300`, `NEXT_PUBLIC_API_URL` |
@@ -197,13 +197,13 @@ A plataforma adota o princípio **12-Factor App (Port Binding via Environment Va
 
 ---
 
-## 6. Trilha Evolutiva Multi-Cloud: Produção Inicial $\rightarrow$ Hiperescala Kubernetes (ADR-008)
+## 6. Trilha Evolutiva Multi-Cloud: Producao Inicial $\rightarrow$ Hiperescala Kubernetes (ADR-008)
 
-Graças ao empacotamento em imagens **OCI Distroless (`linux/arm64`)** e protocolos abertos, a plataforma evolui sem reescrita de código em 3 estágios financeiros:
+Gracas ao empacotamento em imagens **OCI Distroless (`linux/arm64`)** e protocolos abertos, a plataforma evolui sem reescrita de codigo em 3 estagios financeiros:
 
 ```mermaid
 flowchart LR
-    subgraph Stage1["Estágio 1: Piloto / Produção Inicial (US$ 12–24/mês)"]
+    subgraph Stage1["Estagio 1: Piloto / Producao Inicial (US$ 12--24/mes)"]
         direction TB
         C1["AWS: ECS Fargate Spot (Arm64)<br/>Azure: Container Apps | GCP: Cloud Run"]
         AI1["AI Worker: AWS Lambda Arm64 ($0 ocioso)"]
@@ -211,15 +211,15 @@ flowchart LR
         DB1["RDS PostgreSQL db.t4g.micro (Park Noturno)"]
     end
 
-    subgraph Stage2["Estágio 2: Escala 100 Tenants (~US$ 115/mês)"]
+    subgraph Stage2["Estagio 2: Escala 100 Tenants (~US$ 115/mes)"]
         direction TB
         C2["ECS Fargate Spot / ACA / Cloud Run (24x7 Ativo)"]
-        AI2["Lambda Arm64 Concorrência Reservada"]
+        AI2["Lambda Arm64 Concorrencia Reservada"]
         MSG2["Upstash Pro / Serverless Dedicated"]
         DB2["RDS Aurora Serverless v2 / Multi-AZ"]
     end
 
-    subgraph Stage3["Estágio 3: Hiperescala 500+ Tenants (~US$ 420/mês)"]
+    subgraph Stage3["Estagio 3: Hiperescala 500+ Tenants (~US$ 420/mes)"]
         direction TB
         C3["Kubernetes: EKS / AKS / GKE<br/>+ Karpenter Spot + KEDA Autoscaling"]
         AI3["Lambda / Knative / KEDA Event Workers"]
@@ -227,6 +227,6 @@ flowchart LR
         DB3["Aurora PostgreSQL Multi-AZ + Read Replicas"]
     end
 
-    Stage1 -->|"OpenTofu Toggle<br/>Zero Mudança de Código"| Stage2
-    Stage2 -->|"compute_engine = 'eks'<br/>Helm Charts Já Versionados"| Stage3
+    Stage1 -->|"OpenTofu Toggle<br/>Zero Mudanca de Codigo"| Stage2
+    Stage2 -->|"compute_engine = 'eks'<br/>Helm Charts Ja Versionados"| Stage3
 ```

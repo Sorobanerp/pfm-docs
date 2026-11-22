@@ -1,5 +1,5 @@
-site_name: PFM Core Banking — Architecture & SRE Docs
-site_description: Documentação Executiva, Arquitetural (C4 & ADRs), Produto (PRD & BDD) e Operações (SRE & FinOps) da Plataforma PFM Core Banking Multicloud.
+site_name: "Pulse Docs -- Plataforma PFM Core Banking"
+site_description: "Portal Institucional de Arquitetura, Produto, Design System, Seguranca LGPD e Engenharia SRE"
 site_url: https://sorobanerp.github.io/pfm-docs/
 repo_name: Sorobanerp/pfm-docs
 repo_url: https://github.com/Sorobanerp/pfm-docs
@@ -7,32 +7,39 @@ repo_url: https://github.com/Sorobanerp/pfm-docs
 theme:
   name: material
   language: pt-BR
+  font:
+    text: Plus Jakarta Sans
+    code: JetBrains Mono
   features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
-    - navigation.expand
     - navigation.top
-    - navigation.footer
     - search.suggest
     - search.highlight
     - content.code.copy
-    - content.code.annotate
     - content.tabs.link
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
-      accent: blue
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
-        name: Alternar para modo escuro
+        name: Alternar para modo escuro (#111711)
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: light blue
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
-        name: Alternar para modo claro
+        name: Alternar para modo claro (#F7F9F5)
+
+extra_css:
+  - stylesheets/pulse-material.css
 
 plugins:
   - search:
@@ -41,11 +48,11 @@ plugins:
         - en
 
 markdown_extensions:
-  - admonition
   - attr_list
+  - md_in_html
+  - admonition
   - def_list
   - footnotes
-  - md_in_html
   - tables
   - toc:
       permalink: true
@@ -70,25 +77,30 @@ markdown_extensions:
       custom_checkbox: true
 
 nav:
-  - Visão Executiva (V3): index.md
-  - Arquitetura:
-      - ADRs V3 (Decisões Arquiteturais): architecture/adrs.md
-      - Modelo C4 & Topologia (V3): architecture/c4-model.md
-      - Fluxos Críticos & Sequência: architecture/flows.md
-  - Produto & Domínio:
+  - Portal Pulse Docs (Home): index.md
+  - Produto & Dominio:
       - PRD Core Banking V3 & Casos de Uso: product/prd-core-banking.md
       - Backlog Scrum V3 & BDD Gherkin: product/backlog-bdd.md
-      - Backlog Estratégico Release 2.1: product/BACKLOG_RELEASE_2_1.md
-  - Operações & Go-Live:
-      - Plano de Bootstrap, SDLC & SemVer: operations/bootstrap-cloud-github.md
+      - Backlog Estrategico Release 2.1: product/BACKLOG_RELEASE_2_1.md
+  - Design System (IDS):
+      - IDS PFM Pulse (Web & Android): design/ids-pfm-pulse.md
+  - Arquitetura (C4 & ADRs):
+      - ADRs V3 (Decisoes Arquiteturais): architecture/adrs.md
+      - Modelo C4 & Topologia (V3): architecture/c4-model.md
+      - Fluxos Criticos & Sequencia: architecture/flows.md
+  - Seguranca LGPD & FinOps:
+      - Conformidade LGPD, RLS & KMS: security/lgpd-cryptography-compliance.md
       - SLOs, OTel, FinOps & Runbooks: operations/sre-finops.md
+  - Operacoes, Gitflow & DX Local:
+      - Guia de Execucao & Debug Local (DX): operations/local-development-guide.md
+      - Fluxo Gitflow Atlassian & Governanca: operations/gitflow-workflow.md
+      - Plano de Bootstrap, SDLC & SemVer: operations/bootstrap-cloud-github.md
       - Performance (k6) & Capacity Planning: operations/RELATORIO_PERFORMANCE_CAPACITY_PLANNING.md
-  - Auditoria Técnica V2:
-      - Relatório de Auditoria (14 Repos): audit/RELATORIO_AUDITORIA_V2.md
-      - Prompts de Remediação Gerados: audit/PROMPTS_REMEDIACAO_GERADOS.md
-      - Validação E2E (UC-01 a UC-06): audit/RELATORIO_VALIDACAO_E2E.md
-      - Validação Web (Playwright) & Mobile: audit/VALIDACAO_INTERFACES_WEB_MOBILE.md
-      - Diagnóstico & Deleção de Cascas: audit/AUDITORIA_REPOSITORIOS_DELECAO.md
-  - Demo Executiva MVP:
+  - Auditoria & Demo Executiva:
+      - Relatorio de Auditoria (15 Repos): audit/RELATORIO_AUDITORIA_V2.md
+      - Prompts de Remediacao Gerados: audit/PROMPTS_REMEDIACAO_GERADOS.md
+      - Validacao E2E (UC-01 a UC-06): audit/RELATORIO_VALIDACAO_E2E.md
+      - Validacao Web (Playwright) & Mobile: audit/VALIDACAO_INTERFACES_WEB_MOBILE.md
+      - Diagnostico & Delecao de Cascas: audit/AUDITORIA_REPOSITORIOS_DELECAO.md
       - Roteiro Demo ao Vivo (20 min): demo/ROTEIRO_DEMO_AO_VIVO.md
-      - Apresentação Executiva (Slides): demo/APRESENTACAO_EXECUTIVA_MVP.md
+      - Apresentacao Executiva (Slides): demo/APRESENTACAO_EXECUTIVA_MVP.md
