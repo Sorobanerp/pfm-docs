@@ -1,82 +1,38 @@
-# `pfm-docs` — Portal de Arquitetura, Produto & SRE (PFM Core Banking)
+# Pulse Docs -- Portal Institucional de Documentacao Viva (V3.1)
 
-[![Deploy MkDocs Material to GitHub Pages](https://github.com/Sorobanerp/pfm-docs/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/Sorobanerp/pfm-docs/actions/workflows/deploy-pages.yml)
-
-Repositório oficial de **Docs-as-Code** da plataforma **PFM Core Banking** (Repositório #14 da topologia Multi-Repo), construído com **[MkDocs Material](https://squidfunk.github.io/mkdocs-material/)**, suporte nativo a diagramas **Mermaid.js**, alternância de tema claro/escuro e busca indexada em português (`pt-BR`).
+[![Gitflow](https://img.shields.io/badge/Gitflow-develop%20%7C%20main-indigo)](CONTRIBUTING.md)
+[![SemVer](https://img.shields.io/badge/SemVer-2.0.0-blue)](CHANGELOG.md)
+[![Docs](https://img.shields.io/badge/Pulse%20Docs-V3.1-8CBA51)](https://sorobanerp.github.io/pfm-docs/)
 
 ---
 
-## 1. Estrutura da Documentação
+## 1. Visao Geral e Governanca Editorial
 
-```text
-pfm-docs/
-├── .github/
-│   └── workflows/
-│       └── deploy-pages.yml          # CI/CD automático para o GitHub Pages (branch main)
-├── docs/
-│   ├── index.md                      # Visão Executiva (Stacks, Hexagonal, Multi-Repo, Multicloud)
-│   ├── architecture/
-│   │   ├── adrs.md                   # ADRs V2 (ADR-001 a ADR-007)
-│   │   ├── c4-model.md               # Diagramas Mermaid C4 (Níveis 1, 2 e 3) + 14 Repositórios
-│   │   └── flows.md                  # Sequência: PDF em RAM, Pipeline IA 3 Camadas e NFC-e Offline
-│   ├── product/
-│   │   ├── prd-core-banking.md       # Regras de Negócio RN01 a RN06 + Taxonomia de 2 Níveis
-│   │   └── backlog-bdd.md            # Contratos DoR/DoD V2, Backlog US-01 a US-11 e Gherkin BDD
-│   └── operations/
-│       └── sre-finops.md             # SLOs/SLIs, OpenTelemetry, DR (RPO < 5m, RTO < 30m) e FinOps
-├── Makefile                          # Targets de automação (make serve, make build, make clean)
-├── mkdocs.yml                        # Configuração do MkDocs Material + Mermaid + Search PT
-└── requirements.txt                  # Dependências Python fixadas
+Repositorio central de **Docs-as-Code** (MkDocs Material Design 3 + Mermaid.js) contendo Visao Executiva V3, Design System IDS "PFM Pulse", ADRs (ADR-001 a ADR-010), Modelo C4, Fluxos Criticos, PRD Core Banking (`RN01--RN06`, `UC-01--UC-08`), Backlog Scrum V3 (`US-01--US-15`), BDD Gherkin, Guia de Execucao Local e Manuais SRE/FinOps.
+
+- **Repositorio:** `Sorobanerp/pfm-docs`
+- **Skill de Governanca Editorial Permanente:** [.agent/skills/pulse-docs-editorial-standard/SKILL.md](.agent/skills/pulse-docs-editorial-standard/SKILL.md)
+- **Validador Automatico ASCII e Tabelas:** `python3 scripts/sanitize_and_lint_docs.py`
+
+```mermaid
+flowchart LR
+    DOCS["pfm-docs (MkDocs Material 3)"] -->|"sanitize_and_lint_docs.py + mkdocs build --strict"| CI["GitHub Actions CI"]
+    CI -->|"Merge main"| PAGES["GitHub Pages (Pulse Docs V3.1)"]
 ```
 
 ---
 
-## 2. Como Visualizar Localmente
-
-Você pode executar o portal localmente usando **Python `venv`** (automático via `Makefile`) ou via **Docker**.
-
-### Opção A — Usando `make serve` (Recomendado)
-
-O comando `make serve` cria automaticamente o ambiente virtual `.venv` (caso não exista), instala o `mkdocs-material` e inicia o servidor com *live-reload* na porta **18000** (faixa `1xxxx` reservada ao PFM para não colidir com o Portainer em `8000`):
+## 2. Como Executar e Validar Localmente
 
 ```bash
-make serve
-# Para forçar uma porta específica:
-make serve PORT=18001
+# 1. Validar padronizacao 100% ASCII e integridade de tabelas Markdown
+python3 scripts/sanitize_and_lint_docs.py
+
+# 2. Build estrito (0 warnings e 0 erros)
+NO_MKDOCS_2_WARNING=1 .venv/bin/mkdocs build --clean --strict
+
+# 3. Subir servidor local de preview
+NO_MKDOCS_2_WARNING=1 .venv/bin/mkdocs serve -a 127.0.0.1:8000
 ```
 
-Acesse no navegador: **[http://localhost:18000/pfm-docs/](http://localhost:18000/pfm-docs/)**.
-
-### Opção B — Usando Docker diretamente
-
-Caso prefira rodar sem instalar pacotes Python locais:
-
-```bash
-make serve-docker
-# Ou diretamente:
-docker run --rm -it -p 18000:8000 -v $(pwd):/docs squidfunk/mkdocs-material:latest
-```
-
----
-
-## 3. Como Validar o Build Estático
-
-Para compilar o portal estático na pasta `./site` com verificação estrita de links e sintaxe (`--strict`):
-
-```bash
-make build
-```
-
----
-
-## 4. Como Publicar no GitHub Pages
-
-O repositório já possui o workflow `.github/workflows/deploy-pages.yml` configurado para publicação automática via GitHub Actions:
-
-1. No repositório do GitHub, acesse **Settings → Pages**.
-2. Em **Build and deployment → Source**, selecione **GitHub Actions**.
-3. Faça push para a branch `main`:
-   ```bash
-   git push -u origin main
-   ```
-4. A action `Deploy MkDocs Material to GitHub Pages` executará `mkdocs build --clean --strict` e publicará automaticamente o artefato na URL oficial do GitHub Pages.
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para regras editoriais e Gitflow, e [CHANGELOG.md](CHANGELOG.md) para historico de versoes.

@@ -1,113 +1,159 @@
-# PFM Core Banking — Visão Executiva da Plataforma (V3.0)
+# Pulse Docs -- Plataforma PFM Core Banking
 
-Bem-vindo ao Portal de Arquitetura, Produto e Engenharia de Confiabilidade (**SRE & Docs-as-Code V3**) da plataforma **PFM (Personal Financial Management) Core Banking — Production-Ready FinOps & Multi-Cloud Architecture**.
+Portal institucional unificado de Produto, Design System (IDS PFM Pulse), Arquitetura Hexagonal Multi-Cloud (C4 e ADRs 001-010), Seguranca LGPD (PostgreSQL 16 RLS e KMS Envelope Encryption), Engenharia FinOps e Execucao Local da organizacao `Sorobanerp`.
 
-A plataforma foi projetada sob padrões **Tier-1 Cloud-Native Banking**, combinando rigor contábil de partidas dobradas e precisão decimal estrita com ingestão inteligente de documentos financeiros (faturas PDF em RAM e notas fiscais NFC-e via QR Code offline-first), Worker IA Serverless Event-Driven (**AWS Lambda Arm64**), observabilidade unificada (**OTel Tail-Sampling $\rightarrow$ Datadog + SonarCloud**) e isolamento multitenant de nível bancário.
-
----
-
-## 1. Pilares Estratégicos da Plataforma
-
-| Pilar | Diretriz Arquitetural | Benefício Executivo & Técnico |
-| :--- | :--- | :--- |
-| **Rigor Contábil & Precisão** | `NUMERIC(19,4)`, `ROUND_HALF_EVEN` (ABNT NBR 5891), distinção estrita entre Regime de Competência e Regime de Caixa. | Zero divergência de centavos em parcelamentos, estornos e conciliação bancária. |
-| **Poliglotismo Restrito & Hexagonal** | 5 stacks especializadas com **Ports & Adapters** e domínio 100% livre de frameworks em cada microsserviço. | Alta manutenibilidade, testabilidade unitária isolada e uso da linguagem certa para cada carga de trabalho. |
-| **Topologia Multi-Repo (14 Repositórios)** | Isolamento 1:1 de ciclo de vida, CI/CD, versionamento SemVer e módulos Terraform dedicados. | Autonomia de squads, blast radius reduzido e governança clara de contratos (OpenAPI 3.1, Protobuf v3, Avro/JSON Schema). |
-| **Segurança Zero-Trust & LGPD/BACEN** | PostgreSQL **Row-Level Security (RLS)**, **Envelope Encryption (KMS)** e parsing de faturas PDF 100% em RAM (`tmpfs`). | Proteção contra vazamento cross-tenant e conformidade com LGPD e Resolução BCB nº 4.893. |
-| **Agnosticismo Multicloud** | Desenho aderente aos pilares **Well-Architected** para **AWS**, **Azure** e **GCP** sobre Kubernetes gerenciado. | Portabilidade real de cargas de trabalho, mitigação de *vendor lock-in* e otimização contínua de FinOps. |
+[Explorar Arquitetura](architecture/c4-model.md){ .md-button .md-button--primary }
+[Guia de Execucao Local](operations/local-development-guide.md){ .md-button }
 
 ---
 
-## 2. Matriz Tecnológica — Poliglotismo Restrito
+## 1. Indicadores Executivos da Plataforma (Big Numbers)
 
-A plataforma adota o princípio de **Poliglotismo Restrito (ADR-001)**, selecionando estritamente a melhor tecnologia para cada perfil de carga computacional, concorrência e ecossistema:
+<div class="grid cards kpi-4" markdown>
+
+-   <span class="kpi-number">15 Repositorios</span>
+
+    ---
+
+    **Arquitetura Hexagonal Multi-Repo 1:1**
+
+    Microsservicos desacoplados (Java 25, Go 1.27, Python 3.12, Next.js 15, Android) com repositorios OpenTofu dedicados.
+
+-   <span class="kpi-number">&lt; USD 24/mes</span>
+
+    ---
+
+    **FinOps ECS Fargate Spot + Lambda + Upstash**
+
+    Topologia AWS `us-east-2` ultra-enxuta com 0 clusters EKS, 0 NAT Gateways e automacao `pfm-finops-manager`.
+
+-   <span class="kpi-number">2 AZs (us-east-2a/b)</span>
+
+    ---
+
+    **Topologia Enxuta Well-Architected**
+
+    Alta disponibilidade regional com Service Connect / AWS Cloud Map (`pfm.internal`) para chamadas gRPC Leste-Oeste.
+
+-   <span class="kpi-number">100% LGPD &amp; RLS</span>
+
+    ---
+
+    **KMS Envelope Encryption + Audit Append-Only**
+
+    Isolamento `FORCE ROW LEVEL SECURITY` no PostgreSQL 16, chaves DEK por tenant no AWS KMS e Crypto-Shredding.
+
+</div>
+
+---
+
+## 2. Fluxo Gitflow Atlassian e Governanca de Releases
+
+Todos os 15 repositorios operam com Branch Protection ativa em `main` e `develop`, validacao de Conventional Commits e bloqueio automatico de origem de branch (`Gitflow Branch Source Guard`).
 
 ```mermaid
-flowchart LR
-    subgraph Frontend["Canais Digitais (Edge & Mobile)"]
-        WEB["Web SPA / SSR<br/>Next.js 15 + React 19 + TypeScript"]
-        MOB["Mobile Nativo Offline-First<br/>Kotlin Multiplatform / Android Jetpack Compose"]
-    end
-
-    subgraph Edge["Gateway & BFF"]
-        GW["API Gateway & Auth<br/>Envoy / Kong + OAuth2/OIDC"]
-    end
-
-    subgraph Core["Core Transacional (JVM)"]
-        JAVA["Core Ledger, Cards, Budget & Reconcile<br/>Java 25 LTS + Spring Boot 3.4+ (Virtual Threads)"]
-    end
-
-    subgraph HighPerf["Ingestão & Alta Vazão"]
-        GO["PDF Parser (RAM) & NFC-e Scraper<br/>Golang 1.24+ (Goroutines & Zero-Disk I/O)"]
-    end
-
-    subgraph Intelligence["Inteligência Artificial"]
-        PY["Categorizer Pipeline (3-Tier AI)<br/>Python 3.12+ + FastAPI + ONNX / LLM"]
-    end
-
-    WEB -->|HTTP/3 REST| GW
-    MOB -->|HTTP/3 REST| GW
-    GW -->|gRPC / mTLS| JAVA
-    GW -->|gRPC / mTLS| GO
-    JAVA <-->|Kafka / gRPC| GO
-    JAVA <-->|Kafka / gRPC| PY
+gitGraph
+   commit id: "v0.1.0-init"
+   branch develop
+   checkout develop
+   commit id: "chore: setup branch protection"
+   branch feature/pix
+   checkout feature/pix
+   commit id: "feat: add ledger rls policy"
+   commit id: "test: verify isolation"
+   checkout develop
+   merge feature/pix
+   branch release/v1.0.0
+   checkout release/v1.0.0
+   commit id: "chore: release v1.0.0"
+   checkout main
+   merge release/v1.0.0 tag: "v1.0.0"
+   checkout develop
+   merge release/v1.0.0
+   checkout main
+   branch hotfix/rls
+   checkout hotfix/rls
+   commit id: "fix: enforce session tenant id"
+   checkout main
+   merge hotfix/rls tag: "v1.0.1"
+   checkout develop
+   merge hotfix/rls
 ```
 
-### Detalhamento das Stacks Oficiais
+---
 
-1. **Java 25 LTS (Core Banking, Cartões, Orçamento e Conciliação)**
-   - **Escopo**: `pfm-ledger-service`, `pfm-cards-service`, `pfm-budget-service`, `pfm-reconcile-service`, `pfm-notification-service`.
-   - **Motivação**: Uso de *Virtual Threads* (Project Loom consolidado), *Scoped Values*, *Record Patterns*, tipagem monetária com `BigDecimal` (`MathContext.DECIMAL64`, `RoundingMode.HALF_EVEN`) e maturidade transacional ACID.
-2. **Golang 1.24+ (Ingestão de Alta Performance & Parsing em RAM)**
-   - **Escopo**: `pfm-ingestion-pdf-service`, `pfm-nfce-scraper-service`.
-   - **Motivação**: Baixíssimo consumo de memória, *goroutines* leves para scraping resiliente de portais SEFAZ estaduais e manipulação de buffers de faturas PDF estritamente em memória (`bytes.Reader` / `memfd`), garantindo política **Zero-Disk Persistence**.
-3. **Python 3.12+ (Pipeline de Categorização Inteligente em 3 Camadas)**
-   - **Escopo**: `pfm-ai-categorizer-service`.
-   - **Motivação**: Ecossistema nativo de Machine Learning e NLP (FastAPI, Pydantic v2, Scikit-Learn/ONNX Runtime para inferência local sub-10ms e integração com LLMs para casos ambíguos).
-4. **Next.js 15 + TypeScript (Portal Web Executivo)**
-   - **Escopo**: `pfm-web-portal`.
-   - **Motivação**: React Server Components, renderização híbrida (SSR/Streaming), dashboards analíticos de orçamento vs. limite e conciliação interativa.
-5. **Kotlin + Jetpack Compose + Room/SQLDelight (Mobile Offline-First)**
-   - **Escopo**: `pfm-mobile-android`.
-   - **Motivação**: Leitura de QR Code de NFC-e via CameraX + ML Kit no dispositivo sem dependência de rede, fila local criptografada (SQLCipher) e sincronização em background via WorkManager.
+## 3. Navegacao Institucional pelos 6 Pilares
+
+<div class="grid cards pillars-3" markdown>
+
+-   **1. Produto & Regras de Negocio**
+
+    ---
+
+    Regras contabeis imutaveis (`RN01` Competencia vs. Caixa, `RN02` Limite != Orcamento, `RN03` Estorno na Categoria Original), Taxonomia de 2 Niveis e meta `< 5%` em Nao Categorizado.
+
+    [Acessar PRD Core Banking V3 ->](product/prd-core-banking.md)
+
+-   **2. IDS Design System (PFM Pulse)**
+
+    ---
+
+    Paleta institucional (`#8CBA51`, `#DEFF8B` com texto `#141D14`, `#FBCEB5` com texto `#3D1E10`, `#FF5D6C`), tipografia `Plus Jakarta Sans` + `JetBrains Mono` e tokens Web/Android.
+
+    [Acessar IDS PFM Pulse ->](design/ids-pfm-pulse.md)
+
+-   **3. Arquitetura C4 & ADRs (001-010)**
+
+    ---
+
+    Diagramas C4 (Contexto, Conteineres e Componentes), 10 ADRs consolidados e fluxos de sequencia ponta a ponta entre BFF Go, Core Ledger Java 25, Forecast Go e AI Worker Python.
+
+    [Ver ADRs 001-010 ->](architecture/adrs.md) / [Modelo C4 ->](architecture/c4-model.md)
+
+-   **4. Seguranca LGPD & FinOps**
+
+    ---
+
+    Envelope Encryption AWS KMS (`alias/pfm-master-key`), PostgreSQL 16 `FORCE ROW LEVEL SECURITY`, OTel Collector Tail-Based Sampling e automacao `pfm-finops-manager`.
+
+    [Conformidade LGPD ->](security/lgpd-cryptography-compliance.md) / [SRE & FinOps ->](operations/sre-finops.md)
+
+-   **5. Operacoes, Gitflow & Dev Local**
+
+    ---
+
+    Inicializacao local em comando unico (`./init-local-development.sh`), debug no IntelliJ IDEA e VS Code, Swagger UI OpenAPI 3.1, `grpcurl` e governanca Gitflow Atlassian.
+
+    [Guia de Execucao Local ->](operations/local-development-guide.md) / [Gitflow ->](operations/gitflow-workflow.md)
+
+-   **6. Qualidade, Backlog & Testes BDD**
+
+    ---
+
+    Epicos Scrum, User Stories (`US-01` a `US-13`), cenarios BDD Gherkin (`Dado / Quando / Entao`), relatorios de validacao E2E e roteiro de demonstracao executiva.
+
+    [Backlog & BDD Gherkin ->](product/backlog-bdd.md) / [Validacao E2E ->](audit/RELATORIO_VALIDACAO_E2E.md)
+
+</div>
 
 ---
 
-## 3. Arquitetura Hexagonal (Ports & Adapters)
+## 4. Catalogo Oficial dos 15 Repositorios (`Sorobanerp`)
 
-Todos os microsserviços de backend seguem rigorosamente a **Arquitetura Hexagonal (Clean/Hexagonal Architecture)**, garantindo que a lógica de negócio e as regras contábeis (**RN01 a RN06**) nunca dependam de frameworks web, drivers de banco de dados ou SDKs de nuvem.
-
-- **Domain Core (Núcleo Puro)**: Entidades imutáveis, Value Objects (`Money`, `TenantId`, `CompetencePeriod`), Domain Events e especificações de negócio. Zero anotações de ORM ou injeção de dependência externa.
-- **Application Layer (Use Cases & Ports)**: Orquestração de casos de uso transacionais, portas de entrada (*Inbound/Driving Ports*) e portas de saída (*Outbound/Driven Ports*).
-- **Adapters Layer (Infraestrutura)**:
-  - *Inbound Adapters*: Controllers REST HTTP/3, servidores gRPC, consumidores Apache Kafka.
-  - *Outbound Adapters*: Repositórios PostgreSQL (com ativação automática de RLS por `tenant_id`), produtores Transactional Outbox (Debezium/Kafka), clientes Redis e KMS.
-
----
-
-## 4. Topologia Multi-Repo & Governança Multicloud
-
-A plataforma é organizada em **14 repositórios independentes** (detalhados em [Modelo C4 & Topologia](architecture/c4-model.md)), garantindo separação clara entre contratos compartilhados, microsserviços de domínio, frontends, infraestrutura como código (Terraform/OpenTofu) e documentação executiva.
-
-### Presença Multicloud & Trilha Evolutiva (AWS / Azure / GCP)
-
-| Camada da Plataforma | AWS (Referência Primária) | Microsoft Azure (Equivalente) | Google Cloud Platform (Equivalente) |
-| :--- | :--- | :--- | :--- |
-| **Compute Inicial (ADR-008)** | **Amazon ECS Fargate Spot (Arm64)** + Service Connect | **Azure Container Apps (ACA)** | **GCP Cloud Run (2ª Geração)** |
-| **Trilha Hiperescala (K8s)** | Amazon EKS + Karpenter Spot + KEDA | Azure Kubernetes Service (AKS) | Google Kubernetes Engine (GKE Autopilot) |
-| **Worker IA Serverless (ADR-009)** | **AWS Lambda Arm64** (Custo $0 ocioso) | Azure Functions / ACA Jobs | Cloud Run Functions |
-| **Banco Relacional (ACID + RLS)** | RDS PostgreSQL 16 $\rightarrow$ Aurora HA | Azure Database for PostgreSQL Flexible | Cloud SQL Enterprise Plus / AlloyDB |
-| **Mensageria & Cache** | Upstash Kafka/Redis Serverless $\rightarrow$ MSK/Valkey | Upstash / Event Hubs + Managed Redis | Upstash / Managed Kafka + Memorystore |
-| **Gestão de Chaves (Envelope KMS)** | AWS KMS | Azure Key Vault | Cloud KMS |
-| **Observabilidade & Qualidade (ADR-010)** | OTel Collector (Tail-Sampling) $\rightarrow$ **Datadog Unified** + **SonarCloud** | OTel Collector $\rightarrow$ **Datadog Unified** + **SonarCloud** | OTel Collector $\rightarrow$ **Datadog Unified** + **SonarCloud** |
-
----
-
-## 5. Mapa de Navegação Rápida
-
-- **[ADRs V3 (Decisões Arquiteturais)](architecture/adrs.md)**: Registro formal das decisões ADR-001 a ADR-010 (Compute Enxuto + Trilha K8s, Worker IA Lambda Arm64 e Observabilidade Tail-Sampled + Auditoria Imutável).
-- **[Modelo C4 & Topologia (V3)](architecture/c4-model.md)**: Diagramas Mermaid C4 Níveis 1, 2 e 3 + catálogo completo dos repositórios e trilha evolutiva FinOps.
-- **[Fluxos Críticos & Sequência](architecture/flows.md)**: Diagramas de sequência detalhados para Ingestão PDF em RAM, Pipeline IA Lambda Arm64, Captura Offline NFC-e e OTel $\rightarrow$ Datadog / `audit_log`.
-- **[PRD Core Banking V3 & Casos de Uso](product/prd-core-banking.md)**: Regras contábeis RN01–RN06, Casos de Uso `UC-01` a `UC-08` (incluindo SaaS Admin e Perfil/Família LGPD) e Taxonomia Oficial de 2 Níveis.
-- **[Backlog Scrum V3 & Especificações BDD](product/backlog-bdd.md)**: Contratos DoR/DoD V3, histórias de usuário US-01 a US-15 e cenários executáveis em Gherkin.
-- **[SLOs, Observabilidade, DR & FinOps](operations/sre-finops.md)**: Engenharia de confiabilidade, OTel Tail-Sampling, comparativo Piloto (US\$ 12–24) vs. Escala (US\$ 115) vs. Hiperescala K8s (US\$ 420) e Runbooks críticos.
+| # | Repositorio | Stack Principal | Responsabilidade |
+| :-: | :--- | :--- | :--- |
+| 01 | `pfm-docs` | MkDocs Material 3 | Portal Institucional Pulse Docs (Produto, IDS, Arquitetura, LGPD, SRE e DX) |
+| 02 | `pfm-contracts` | Protobuf v1 + OpenAPI 3.1 | Contratos gRPC (`CoreLedger`, `Forecast`, `Profile`, `Admin`) e `openapi.yaml` |
+| 03 | `pfm-shared-infra` | OpenTofu + Docker Compose | VPC 2 AZs (0 NAT), Cluster ECS `pfm-ecs-pilot`, Cloud Map `pfm.internal`, RDS, KMS, S3 |
+| 04 | `pfm-finops-manager-infra` | Python 3.12 Arm64 + OpenTofu | Lambda `pfm-finops-manager` (`stop`, `start`, `audit` e `cost_guardrails`) |
+| 05 | `pfm-core-ledger-java` | Java 25 LTS + Spring Boot 3.5 | Ledger Partidas Dobradas, Parcelamentos, RLS PostgreSQL 16 e gRPC `:9090` |
+| 06 | `pfm-core-ledger-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64, Service Connect e IAM Least Privilege do Core Ledger |
+| 07 | `pfm-ingestion-bff-go` | Go 1.27 + HTTP/2 & Swagger | Upload PDF em RAM, Scraper NFC-e, Bridge gRPC e Swagger UI `:8080` |
+| 08 | `pfm-ingestion-bff-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64, Service Connect e IAM S3/KMS do BFF |
+| 09 | `pfm-forecast-engine-go` | Go 1.27 + `shopspring/decimal` | Projecao Run-Rate (30/60/90d) e Simulador SAC/Price/Consorcio gRPC `:9091` |
+| 10 | `pfm-forecast-engine-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64, Service Connect e IAM do Forecast Engine |
+| 11 | `pfm-ai-worker-python` | Python 3.12 + Pydantic v2 | Categorizacao em 3 Camadas (Regras Locais -> pgvector -> Gemini 2.5 Flash) |
+| 12 | `pfm-ai-worker-infra` | OpenTofu (AWS Lambda Arm64) | Funcao Serverless `pfm-ai-worker-python-prod`, SQS DLQ e KMS Secrets |
+| 13 | `pfm-web-nextjs` | Next.js 15 + React 19 | Experiencia Web Full-Viewport com Design System IDS PFM Pulse |
+| 14 | `pfm-web-infra` | OpenTofu (ECS Fargate Spot) | Task Definition Arm64 e infraestrutura dedicada do Frontend Web |
+| 15 | `pfm-mobile-android` | Kotlin 2.1 + Jetpack Compose | Superapp Android Material 3 com Scanner NFC-e e Tokens IDS PFM Pulse |
