@@ -90,6 +90,7 @@ nav:
       - Arquitetura C4 & Catalogo dos 15 Repositorios: 04-visao-arquitetura/arquitetura-c4-e-repos.md
       - Fluxos de Sequencia (PDF RAM, IA, NFC-e, SAC): 04-visao-arquitetura/fluxos-de-sequencia.md
       - Seguranca Criptografica, RLS & LGPD: 04-visao-arquitetura/seguranca-e-lgpd.md
+      - Framework Secure by Design & Auditoria AWS: 04-visao-seguranca/secure-by-design-e-auditoria-aws.md
       - Decisoes Arquiteturais (ADR-001 a ADR-010): 04-visao-arquitetura/decisoes-arquiteturais-adrs.md
   - 5. Visao de Tecnologia & Operacoes:
       - Desenvolvimento Local, IDEs, Swagger & gRPC: 05-visao-operacoes/desenvolvimento-local-e-ides.md
