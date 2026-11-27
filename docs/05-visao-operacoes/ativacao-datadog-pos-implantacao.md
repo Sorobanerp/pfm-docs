@@ -58,13 +58,13 @@ tofu apply \
 
 ### Passo 3 — Reiniciar Tasks ECS com Zero-Downtime para Carregar o Segredo
 
-Force um novo deployment rolling nas tasks do cluster `pfm-pilot-prod` sem downtime:
+Force um novo deployment rolling nas tasks do cluster `pfm-ecs-pilot` sem downtime:
 
 ```bash
 for SVC in pfm-core-ledger-java pfm-forecast-engine-go pfm-ingestion-bff-go; do
   aws ecs update-service \
     --region us-east-2 \
-    --cluster pfm-pilot-prod \
+    --cluster pfm-ecs-pilot \
     --service "${SVC}" \
     --force-new-deployment
 done
