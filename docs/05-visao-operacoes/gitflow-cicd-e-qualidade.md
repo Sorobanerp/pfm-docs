@@ -51,10 +51,13 @@ gitGraph
 
 Os 7 repositorios de infraestrutura (`pfm-shared-infra`, `pfm-finops-manager-infra`, `pfm-core-ledger-infra`, `pfm-ingestion-bff-infra`, `pfm-forecast-engine-infra`, `pfm-ai-worker-infra`, `pfm-web-infra`) operam com:
 
-- **Autenticacao Zero-Secret:** AWS IAM OIDC Role (`PFM-GitHubActions-OIDC-Role`) com bloqueio explicito `DenyAllEKS` na fase enxuta.
-- **State Isolado por Repositorio:** Bucket S3 `sorobanerp-pfm-tfstate-us-east-2-366476833548` + tabela DynamoDB `pfm-tfstate-locks`.
-- **Quality Gates IaC:** `tofu fmt -check -recursive`, `tofu validate` e `trivy config --exit-code 1 --severity CRITICAL,HIGH .`.
-- **Pre-Apply Backup & Rollback Automatico:** Snapshot automatico do `terraform.tfstate.last-good` antes de qualquer `tofu apply` em `main`.
+- **Autenticacao Zero-Secret:** AWS IAM OIDC Role (`PFM-GitHubActions-OIDC-Role`) com bloqueio explicito `DenyAllEKS` na fase enxuta e suporte aos subjects `refs/heads/develop` (ambiente `dev`) e `refs/heads/main` / `environment:production` (ambiente `prod`).
+- **State Isolado por Repositorio e Ambiente (`ADR-009`):** Bucket S3 `sorobanerp-pfm-tfstate-us-east-2-366476833548` (`<repo>/<env>/terraform.tfstate`) + tabela DynamoDB `pfm-tfstate-locks`.
+- **Fluxo GitOps Dual-Environment (`dev` e `prod`):**
+  - Pull Requests validam `tofu fmt -check -recursive`, `tofu validate` e `trivy config` em **ambos** os ambientes (`terraform/environments/dev` e `terraform/environments/prod`);
+  - Push/Merge na `develop` executa `tofu apply` automaticamente no ambiente **`dev`** (Piloto Minimo com Scale-to-Zero Bootstrap `0/0/0`);
+  - Push/Merge na `main` executa `tofu apply` no ambiente **`prod`** (protegido pelo GitHub Environment `production`).
+- **Pre-Apply Backup & Rollback Automatico:** Snapshot automatico do `terraform.tfstate.last-good` antes de qualquer `tofu apply`.
 
 ---
 

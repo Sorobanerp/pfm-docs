@@ -92,6 +92,7 @@ nav:
       - Seguranca Criptografica, RLS & LGPD: 04-visao-arquitetura/seguranca-e-lgpd.md
       - Framework Secure by Design & Auditoria AWS: 04-visao-seguranca/secure-by-design-e-auditoria-aws.md
       - Decisoes Arquiteturais (ADR-001 a ADR-010): 04-visao-arquitetura/decisoes-arquiteturais-adrs.md
+      - ADR-009 Ambientes dev/prod & Modulos OpenTofu: 02-arquitetura-adrs/ADR-009-ambientes-dev-prod-e-estrutura-modular-opentofu.md
   - 5. Visao de Tecnologia & Operacoes:
       - Desenvolvimento Local, IDEs, Swagger & gRPC: 05-visao-operacoes/desenvolvimento-local-e-ides.md
       - Gitflow Atlassian, CI/CD OpenTofu & OTel: 05-visao-operacoes/gitflow-cicd-e-qualidade.md
