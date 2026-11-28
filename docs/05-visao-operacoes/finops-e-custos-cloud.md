@@ -65,3 +65,5 @@ A funcao AWS Lambda `pfm-finops-manager` (`arn:aws:lambda:us-east-2:366476833548
    - Restaura `desiredCount = 1` nos 4 servicos ECS e libera a concorrencia da Lambda `pfm-ai-worker-python-prod`.
 3. **`{"action": "audit"}` (Raio-X FinOps & Guardrails Zero-EKS / Zero-NAT):**
    - Retorna a contagem exata de recursos ativos/parados, o run-rate mensal projetado e o bloco `cost_guardrails`, disparando `CRITICAL_COST_ALERT` caso qualquer cluster EKS ou NAT Gateway ativo seja detectado na regiao.
+4. **Scale-to-Zero Bootstrap (`ADR-009` — `desired=0, min=0, max=0` em `dev` e `prod`):**
+   - Durante a fase de provisionamento estrutural de infraestrutura (`FEAT-01B`), todos os servicos ECS nos ambientes `dev` (`pfm-shared/dev/terraform.tfstate`) e `prod` (`pfm-shared/prod/terraform.tfstate`) sao inicializados com `desired_count = 0`, `min_capacity = 0` e `max_capacity = 0`, garantindo **custo US$ 0,00 (`R$ 0,00`)** de compute e zero falhas de `CannotPullContainerError` ate a publicacao das imagens no ECR (`FEAT-02`/`FEAT-03`).
